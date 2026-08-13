@@ -1,0 +1,14 @@
+"""
+[general]
+target_language = "zh"
+native_language = "en"
+
+[anki]
+url = "http://localhost:8765"
+default_deck = "foo"
+
+[anki.note_types]
+cloze_model = "Cloze"
+vocab_model = "Basic"
+"""
+

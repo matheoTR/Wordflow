@@ -1,0 +1,4 @@
+- first time configuration wizard
+- allow user to use any translation service they want
+- distinguish word from sentence translation
+
