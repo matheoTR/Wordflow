@@ -4,11 +4,18 @@
 
 import os
 import subprocess
+import shutil
 
+class ClipboardError(Exception):
+    """raised if the user is missing clipboard dependency"""
+    pass
 
 def get_text() -> str:
     is_wayland = bool(os.environ.get("WAYLAND_DISPLAY"))
     if is_wayland:
+        # Ensure wl-clipboard is actually installed
+        if not shutil.which("wl-paste"):
+            raise ClipboardError("Missing dependency: 'wl-clipboard' is not installed. (e.g., sudo pacman -S wl-clipboard)")
         # Try highlighted text first, fall back to standard clipboard
         try:
             result = subprocess.run(
@@ -20,11 +27,19 @@ def get_text() -> str:
             pass
 
         # Fallback to normal clipboard
-        result = subprocess.run(["wl-paste"], capture_output=True, text=True)
-        return result.stdout.strip()
+        try:
+            result = subprocess.run(
+                ["wl-paste"], capture_output=True, text=True, check=True
+            )
+            if result.stdout.strip():
+                return result.stdout.strip()
+        except subprocess.CalledProcessError:
+            pass  # Standard clipboard is also empty
 
     else:
         # X11 approach using xclip
+        if not shutil.which("xclip"):
+            raise ClipboardError("Missing dependency: 'xclip' is not installed. (e.g., sudo pacman -S xclip)")
         try:
             result = subprocess.run(
                 ["xclip", "-o", "-selection", "primary"],
@@ -36,9 +51,17 @@ def get_text() -> str:
                 return result.stdout.strip()
         except subprocess.CalledProcessError:
             pass
+        # Fallback to standard clipboard
+        try:
+            result = subprocess.run(
+                ["xclip", "-o", "-selection", "clipboard"], 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            if result.stdout.strip():
+                return result.stdout.strip()
+        except subprocess.CalledProcessError:
+            pass
 
-        # Fallback to normal clipboard
-        result = subprocess.run(
-            ["xclip", "-o", "-selection", "clipboard"], capture_output=True, text=True
-        )
-        return result.stdout.strip()
+    raise ClipboardError("No text found in primary selection or standard clipboard.")

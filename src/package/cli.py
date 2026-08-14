@@ -8,55 +8,98 @@
 # foo -translate
 # foo --cloze
 # foo --help
-# foo --configure
+# foo --wizard
 
-import argparse
-from config import load_config
-from workflows import *
 import sys
-import importlib.resources
+import argparse
+from importlib.resources import files
+
+# local modules
+from configuration import load_config
+from workflows import translate_workflow, cloze_workflow
 from wizard import launch_wizard
 
 
-def print_help():
-    # load help message
+def print_manual():
+    """Reads and prints the long-form manual from package data."""
     try:
-        help_text = importlib.resources.read_text("package.data", "help_manual.txt")
-        print(help_text)
+        manual = (
+            files("package.data")
+            .joinpath("help_manual.txt")
+            .read_text(encoding="utf-8")
+        )
+        print(manual)
     except FileNotFoundError:
         print("Help manual not found.", file=sys.stderr)
 
 
-def get_args():
-    commandline_parser = argparse.ArgumentParser(
-        prog="foo", description="interprets program mode"
+def get_parser():
+    parser = argparse.ArgumentParser(
+        prog="foo",
+        description="Automate Anki flashcard creation and text translation directly from your clipboard!",
+        epilog="Run 'foo --manual' to read the full detailed documentation.",
     )
-    commandline_parser.add_argument(
-        "-t", "--translate", action="store_true", dest="translate"
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument(
+        "-t",
+        "--translate",
+        action="store_true",
+        help="Translate the highlighted text and show a notification.",
     )
-    commandline_parser.add_argument("-c", "--cloze", action="store_true", dest="cloze")
-    commandline_parser.add_argument("-h", "--help", action="store_true", dest="help")
-    commandline_parser.add_argument(
-        "-w", "--wizard", action="store_true", dest="wizard"
+    group.add_argument(
+        "-c",
+        "--cloze",
+        action="store_true",
+        help="Create a cloze flashcard from highlighted text.",
     )
-    return commandline_parser.parse_args()
+    group.add_argument(
+        "-w",
+        "--wizard",
+        action="store_true",
+        help="Launch the interactive configuration wizard.",
+    )
+    group.add_argument(
+        "-m", "--manual", action="store_true", help="Print the full user manual."
+    )
+    return parser
 
 
 def main():
+
     # 1. Parse CL arguments
-    args = get_args()
-    # 2. loads configuration as a dictionnary
-    config = load_config()
+    parser = get_parser()
 
-    # 3. trigger workflow
-    if args.translate:
-        translate_workflow(config)
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
-    elif args.cloze:
-        cloze_workflow(config)
+    args = parser.parse_args()
+    try:
+        # 2. Handle manual and wizard
+        if args.manual:
+            print_manual()
+            sys.exit(0)
+        if args.wizard:
+            launch_wizard()
+            sys.exit(0)
 
-    elif args.help:
-        print_help()
+        # 3. loads configuration as a dictionnary
+        config = load_config()
 
-    elif args.wizard:
-        launch_wizard()
+        # 4. trigger workflow
+        if args.translate:
+            translate_workflow(config)
+
+        elif args.cloze:
+            cloze_workflow(config)
+
+    except KeyboardInterrupt:
+        print("\nOperation cancelled.")
+    except Exception as e:
+        print(f"\n[Error]: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
