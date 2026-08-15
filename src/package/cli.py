@@ -5,10 +5,10 @@
 # 3. dispatches orders (trigger a workflow)
 
 # LIST OF FUNCTIONS
-# foo -translate
-# foo --cloze
-# foo --help
-# foo --wizard
+# wordpipe -translate
+# wordpipe --cloze
+# wordpipe --help
+# wordpipe --wizard
 
 import sys
 import argparse
@@ -35,9 +35,9 @@ def print_manual():
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        prog="foo",
+        prog="wordpipe",
         description="Automate Anki flashcard creation and text translation directly from your clipboard!",
-        epilog="Run 'foo --manual' to read the full detailed documentation.",
+        epilog="Run 'wordpipe --manual' to read the full detailed documentation.",
     )
     group = parser.add_mutually_exclusive_group(required=True)
 

@@ -2,13 +2,19 @@ import subprocess
 import shutil
 import sys
 
-def send_notification(title: str, message: str, urgency: str = "normal", timeout: int = 5000):
+
+def send_notification(
+    title: str, message: str, urgency: str = "normal", timeout: int = 5000
+):
     """
     Sends a Linux desktop notification using notify-send.
     """
     # Check if notify-send is installed on the user's system
     if not shutil.which("notify-send"):
-        print(f"[Warning] 'notify-send' is not installed. Missing notification: {title}", file=sys.stderr)
+        print(
+            f"[Warning] 'notify-send' is not installed. Missing notification: {title}",
+            file=sys.stderr,
+        )
         return
 
     try:
@@ -16,7 +22,7 @@ def send_notification(title: str, message: str, urgency: str = "normal", timeout
             [
                 "notify-send",
                 "-a",
-                "foo",  # App name shown in notification center
+                "wordpipe",  # App name shown in notification center
                 "-u",
                 urgency,  # Urgency: low, normal, critical
                 "-t",
@@ -26,9 +32,11 @@ def send_notification(title: str, message: str, urgency: str = "normal", timeout
             ],
             check=True,
             capture_output=True,
-            text=True
+            text=True,
         )
     except subprocess.CalledProcessError as e:
-        print(f"[Warning] Notification daemon error: {e.stderr.strip()}", file=sys.stderr)
+        print(
+            f"[Warning] Notification daemon error: {e.stderr.strip()}", file=sys.stderr
+        )
     except Exception as e:
         print(f"[Warning] Failed to send notification '{title}': {e}", file=sys.stderr)

@@ -7,7 +7,7 @@ from importlib.resources import files
 import sys
 
 
-config_dir = Path.home() / ".config" / "foo"
+config_dir = Path.home() / ".config" / "wordpipe"
 config_file = config_dir / "config.toml"
 
 
