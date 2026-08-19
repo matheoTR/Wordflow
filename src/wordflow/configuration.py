@@ -1,0 +1,105 @@
+# Reads/writes user settings from ~/.config/
+# if no config file exists, creates a default one
+import tomllib
+from pathlib import Path
+from importlib.resources import files
+
+from .my_classes import GlobalConfig, TranslatorConfig, AnkiConfig
+
+
+config_dir = Path.home() / ".config" / "wordflow"
+config_file = config_dir / "config.toml"
+
+
+class ConfigError(Exception):
+    """Custom exception raised when configuration loading fails."""
+
+    pass
+
+
+def load_config(cli_lang: str | None = None):
+    """
+    reads user config or creates one if there is none
+    returns TranslatorConfig, AnkiConfig, GlobalConfig classes
+    """
+
+    # create default config the first time
+    if not config_file.exists():
+        try:
+            default_config = (
+                files("wordflow")
+                .joinpath("data", "default_config.toml")
+                .read_text(encoding="utf-8")
+            )
+        except FileNotFoundError:
+            raise ConfigError(
+                "CRITICAL: Could not find default_config.toml in package data. Try a clean install."
+            )
+
+        config_dir.mkdir(parents=True, exist_ok=True)
+        config_file.write_text(default_config.strip(), encoding="utf-8")
+
+    try:
+        with open(config_file, "rb") as f:
+            config = tomllib.load(f)
+            # Making the Objects
+            translator_data = config.get("translator", {})
+            translator_config = TranslatorConfig(
+                translator=translator_data.get("translator_name", ""),
+                api_key=translator_data.get("api_key", ""),
+                api_base_url=translator_data.get("api_base_url", ""),
+                engine_model=translator_data.get("engine_model", ""),
+            )
+            anki_config = resolve_anki_config(config, cli_lang)
+
+            global_data = config.get("global", {})
+            global_config = GlobalConfig(
+                native_language=global_data.get("native_language", "en"),
+                confirm_before_add=global_data.get("confirm_before_add", False),
+                enable_notifications=global_data.get("enable_notifications", True),
+            )
+            return translator_config, anki_config, global_config
+
+    except tomllib.TOMLDecodeError as e:
+        # Catch syntax errors
+        raise ConfigError(
+            f"Syntax error in config file ({config_file}):\n  -> {e}\n\nPlease fix the typo, or delete the file to regenerate the defaults."
+        )
+    except PermissionError:
+        raise ConfigError(f"Permission denied: Cannot read {config_file}.")
+
+
+def resolve_anki_config(config: dict, cli_lang: str | None = None) -> AnkiConfig:
+    """
+    Merges [anki.default] with language-specific [anki.<lang>] overrides.
+    Returns a final config dictionnary with resolved names.
+    if there is no override, simply returns the default anki config
+    """
+
+    # resolve active language
+    active_lang = cli_lang or config.get("global", {}).get("target_language")
+
+    anki_general = config.get("anki", {})
+    anki_defaults = anki_general.get("default", {})
+    anki_override = anki_general.get(str(active_lang), {})
+
+    # overrides if exists, otherwise falls back to default
+    anki_config = AnkiConfig(
+        url=anki_override.get("url", anki_defaults.get("url")),
+        deck=anki_override.get("deck", anki_defaults.get("deck")).replace(
+            "{target_language}", str(active_lang)
+        ),
+        card_model=anki_override.get("card_model", anki_defaults.get("card_model")),
+        tags=anki_override.get("tags", anki_defaults.get("tags")),
+        allow_duplicates=anki_override.get(
+            "allow_duplicates", anki_defaults.get("allow_duplicates")
+        ),
+        front_field=anki_override.get("front_field", anki_defaults.get("front_field")),
+        translation_field=anki_override.get(
+            "translation_field", anki_defaults.get("translation_field")
+        ),
+        additionnal_info_field=anki_override.get(
+            "additionnal_info_field", anki_defaults.get("additionnal_info_field")
+        ),
+    )
+    return anki_config

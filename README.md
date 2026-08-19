@@ -1,3 +1,3 @@
 # setup and shortcuts snippets
-wordpipe?
+wordflow?
 workflows, anki, le reste

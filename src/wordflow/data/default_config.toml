@@ -1,0 +1,92 @@
+# ==============================================================================
+# Configuration for wordflow CLI
+# Default Location: ~/.config/wordflow/config.toml
+# ==============================================================================
+# ------------------------------------------------------------------------------
+[global]
+# ISO 639-1 language codes (e.g., "en", "zh", "nl", "fr", "es")
+native_language = "en"
+target_language = "es" #language used for default anki settings. You can override this with the --lang (-l) flag to use different deck settings
+
+# Ask for confirmation before adding the card to Anki (interactive prompt)
+confirm_before_add = true
+
+# Send system notifications
+enable_notifications = true
+
+[translator]
+# Supported engines: 
+# "GoogleTranslator",
+# "MyMemoryTranslator",
+# "LingueeTranslator",
+# "PonsTranslator",
+# "DeeplTranslator",
+# "ChatGptTranslator",
+# "MicrosoftTranslator",
+# "YandexTranslator",
+# "QcriTranslator",
+translator_name = "GoogleTranslator"
+
+# Required for paid/authenticated APIs (DeepL, OpenAI, etc.)
+# leave blank if you don't need it
+api_key = ""
+
+# Base URL for self-hosted instances
+# leave blank if you don't need it
+api_base_url = ""
+
+# Engine-specific model selection
+# leave blank if you don't need it
+engine_model = ""
+
+# ------------------------------------------------------------------------------
+# DEFAULT ANKI CONFIGURATION
+# Used if no -l/--lang flag is passed, or as fallbacks for missing language keys
+# ------------------------------------------------------------------------------
+[anki]
+[anki.default]
+# default AnkiConnect URL
+url = "http://localhost:8765"
+
+# Target deck name. 
+# Supports dynamic placeholders: {target_language}, {native_language}
+# Example: "Languages::{target_language}" creates cards in the deck: "Languages::es"
+deck = "Languages::{target_language}"
+
+# The name of the note model in Anki
+card_model = "wordflow cloze"
+
+# Allow duplicate cards if the same word/cloze already exists in the deck?
+allow_duplicates = false
+
+# Default tags automatically attached to every card added by this tool
+tags = ["wordflow", "auto-generated"]
+
+# Map <internal_field_name> = "<anki_field_name>"
+[anki.default.fields]
+front = "front"
+translation = "translation"
+additional_notes = "additional notes"
+
+
+# ------------------------------------------------------------------------------
+# LANGUAGE-SPECIFIC OVERRIDES
+# Triggered when passing -l/--lang <language_iso_code>
+# ------------------------------------------------------------------------------
+
+# Override for Chinese (-l zh)
+[anki.zh]
+default_deck = "Languages::Chinese"
+card_model = "Chinese Hanzi Cloze"
+
+[anki.zh.fields]
+front = "Hanzi"
+translation = "Pinyin_Translation"
+additional_notes = "Stroke_Order"
+
+# Override for Dutch (-l nl)
+[anki.nl]
+default_deck = "Languages::Dutch"
+# fields fall back to [anki.default.fields] automatically
+
+

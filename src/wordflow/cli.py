@@ -1,31 +1,33 @@
-# The entry point (handles command-line arguments)
-# what the user runs
-# 1. parses CL arguments
-# 2. loads the configuration
-# 3. dispatches orders (trigger a workflow)
-
 # LIST OF FUNCTIONS
-# wordpipe -translate
-# wordpipe --cloze
-# wordpipe --help
-# wordpipe --wizard
+# wordflow --translate
+# wordflow --cloze (--lang)
+# wordflow --help
+# wordflow --wizard
 
 import sys
 import argparse
 from importlib.resources import files
+import traceback
 
 # local modules
-from configuration import load_config
-from workflows import translate_workflow, cloze_workflow
-from wizard import launch_wizard
+from .configuration import load_config
+from .workflows import translate_workflow, cloze_workflow
+from .wizard import launch_wizard
+from .my_classes import *
+from .notifications import notify
 
 
 def print_manual():
-    """Reads and prints the long-form manual from package data."""
+    """Reads and prints the long-form manual."""
     try:
+        # temporary
+        # manual_path = Path(__file__).parent / "data" / "help_manual.txt"
+        # manual_text = manual_path.read_text(encoding="utf-8")
+        # print(manual_text)  # TODO: change to manual
+
         manual = (
-            files("package.data")
-            .joinpath("help_manual.txt")
+            files(__package__)
+            .joinpath("data", "help_manual.txt")
             .read_text(encoding="utf-8")
         )
         print(manual)
@@ -35,9 +37,9 @@ def print_manual():
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        prog="wordpipe",
+        prog="wordflow",
         description="Automate Anki flashcard creation and text translation directly from your clipboard!",
-        epilog="Run 'wordpipe --manual' to read the full detailed documentation.",
+        epilog="Run 'wordflow --manual' to read the full detailed documentation.",
     )
     group = parser.add_mutually_exclusive_group(required=True)
 
@@ -62,6 +64,13 @@ def get_parser():
     group.add_argument(
         "-m", "--manual", action="store_true", help="Print the full user manual."
     )
+    parser.add_argument(
+        "-l",
+        "--lang",
+        type=str,
+        default=None,
+        help="Override the target language",
+    )
     return parser
 
 
@@ -84,20 +93,25 @@ def main():
             launch_wizard()
             sys.exit(0)
 
-        # 3. loads configuration as a dictionnary
-        config = load_config()
+        # 3. loads configuration as 3 dictionnaries
+        translator_config, anki_config, global_config = load_config(args.lang)
 
         # 4. trigger workflow
         if args.translate:
-            translate_workflow(config)
+            translate_workflow(translator_config, global_config)
 
         elif args.cloze:
-            cloze_workflow(config)
+            cloze_workflow(translator_config, anki_config, global_config)
 
     except KeyboardInterrupt:
-        print("\nOperation cancelled.")
+        notify(
+            "Wordflow",
+            "Operation cancelled.",
+            enable_notifications=global_config.enable_notifications,
+        )
     except Exception as e:
-        print(f"\n[Error]: {e}", file=sys.stderr)
+        print("\n[DEBUG TRACEBACK]:", file=sys.stderr)
+        traceback.print_exc()  # Prints exact file, line number, and call stack
         sys.exit(1)
 
 

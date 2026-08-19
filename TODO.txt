@@ -1,4 +1,7 @@
 - first time configuration wizard
-- allow user to use any translation service they want
 - distinguish word from sentence translation
-
+- t should accept argument
+- --config should print config
+  use clipboard false
+  confirm before creating
+let params be changed from cli

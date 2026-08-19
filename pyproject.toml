@@ -1,1 +1,38 @@
-# pip metadata
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wordflow"
+version = "0.1.0"
+description = "Automate Anki flashcard creation and text translation directly from your clipboard."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Mathéo Tritschler", email = "tritschler.matheo@gmail.com" }
+]
+keywords = ["anki", "translation", "flashcards", "cli", "linux", "language"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
+]
+
+dependencies = [
+    "requests>=2.28.0",
+    "deep-translator>=1.11.0",
+]
+
+[project.scripts]
+wordflow = "wordflow.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+wordflow = ["data/*"]

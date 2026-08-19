@@ -3,12 +3,20 @@ import shutil
 import sys
 
 
-def send_notification(
-    title: str, message: str, urgency: str = "normal", timeout: int = 5000
+def notify(
+    title: str,
+    message: str,
+    urgency: str = "normal",
+    timeout: int = 5000,
+    enable_notifications=True,
 ):
     """
-    Sends a Linux desktop notification using notify-send.
+    Sends a Linux desktop notification using notify-send, or simply prints message to terminal
     """
+    if not enable_notifications:
+        print(message)
+        return
+
     # Check if notify-send is installed on the user's system
     if not shutil.which("notify-send"):
         print(
@@ -22,7 +30,7 @@ def send_notification(
             [
                 "notify-send",
                 "-a",
-                "wordpipe",  # App name shown in notification center
+                "wordflow",  # App name shown in notification center
                 "-u",
                 urgency,  # Urgency: low, normal, critical
                 "-t",
