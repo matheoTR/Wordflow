@@ -17,6 +17,21 @@ class ConfigError(Exception):
     pass
 
 
+def print_config():
+    """
+    Reads and prints the current configuration file
+    """
+
+    print("default config path: .config/wordflow/config.toml")
+    try:
+        print(config_file.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise ConfigError(
+            "Error: Could not find config.toml in .config/wordflow. \n",
+            "If this is the first time you run this program, wordflow will automatically create one when called with --translate, --cloze, or --wizard",
+        )
+
+
 def load_config(cli_lang: str | None = None):
     """
     reads user config or creates one if there is none

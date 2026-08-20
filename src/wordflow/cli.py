@@ -10,7 +10,7 @@ from importlib.resources import files
 import traceback
 
 # local modules
-from .configuration import load_config
+from .configuration import load_config, print_config
 from .workflows import translate_workflow, cloze_workflow
 from .wizard import launch_wizard
 from .my_classes import *
