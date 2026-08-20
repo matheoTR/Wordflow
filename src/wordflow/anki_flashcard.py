@@ -35,55 +35,66 @@ def setup_anki_model(
     url: str,
     model_name: str,
     front_field_name: str,
-    translation_field_name: str,
-    additionnal_info_field_name: str,
+    back_field_name: str,
+    extra_field_name: str,
 ):
     """
     Checks if the required Cloze model exists. If not, it creates it
     with the exact fields and dark-mode styling needed.
     """
     existing_models = invoke(url, "modelNames")
-
+    print(existing_models)
+    print(f"Is '{model_name}' in Anki? -> {model_name in existing_models}\n")
     # map lowercase names
-    existing_models_lowered = {m.lower(): m for m in existing_models}
+    # existing_models_lowered = {m.lower(): m for m in existing_models}
 
     # if wordflow cloze model does not exist, we create it
-    if model_name.lower() not in existing_models_lowered:
+    if model_name not in existing_models:
         css = """
         .card { font-family: arial; font-size: 20px; text-align: center; color: white; background-color: #282a36; }
         .cloze { font-weight: bold; color: #ffb86c; }
         #answer { border-top: 1px solid #6272a4; margin-top: 15px; padding-top: 15px; }
         """
         front_anki = f"{{{{cloze:{front_field_name}}}}}"
-        trans_anki = f"{{{{{translation_field_name}}}}}"
-        notes_anki = f"{{{{{additionnal_info_field_name}}}}}"
+        back_anki = f"{{{{{back_field_name}}}}}"
+        extra_anki = f"{{{{{extra_field_name}}}}}"
 
-        invoke(
+        # DEBUG
+        print("front: ", front_anki)
+        print("trans: ", back_anki)
+        print("notes: ", extra_anki)
+        print("css: ", css)
+        print("front_field_name: ", front_field_name)
+        print("translation_field_name: ", back_field_name)
+        print("additionnal_info_field_name: ", extra_field_name)
+
+        res = invoke(
             url,
             "createModel",
             modelName=model_name,
             inOrderFields=[
                 front_field_name,
-                translation_field_name,
-                additionnal_info_field_name,
+                back_field_name,
+                extra_field_name,
             ],
             isCloze=True,
             css=css,
             cardTemplates=[
                 {
-                    "Name": "wordflow cloze",
+                    "Name": "Wordflow Cloze",
                     "Front": front_anki,
-                    "Back": f"{front_anki}<div id=answer>{trans_anki}<br><br>{notes_anki}</div>",
+                    "Back": f"{front_anki}<div id=answer>{back_anki}<br><br>{extra_anki}</div>",
                 }
             ],
         )
+        print(res)
 
 
 def make_cloze(
-    original_sentence,
-    translated_sentence,
-    original_word,
-    translated_word,
+    original_sentence: str,
+    translated_sentence: str,
+    original_word: str,
+    translated_word: str,
     anki_config: AnkiConfig,
 ):
     """
@@ -91,12 +102,13 @@ def make_cloze(
     based on language and packet
     """
     # check environment (create card type and deck if non-existing)
+    print("Model name: ", anki_config.card_model)
     setup_anki_model(
         anki_config.url,
         anki_config.card_model,
-        anki_config.front_field,
-        anki_config.translation_field,
-        anki_config.additionnal_info_field,
+        anki_config.front_field_name,
+        anki_config.back_field_name,
+        anki_config.extra_field_name,
     )
     invoke(anki_config.url, "createDeck", deck=anki_config.deck)
 
@@ -121,9 +133,9 @@ def make_cloze(
         "deckName": anki_config.deck,
         "modelName": anki_config.card_model,
         "fields": {
-            f"{anki_config.front_field}": front_field,
-            f"{anki_config.translation_field}": translated_sentence,
-            f"{anki_config.additionnal_info_field}": "",
+            f"{anki_config.front_field_name}": front_field,
+            f"{anki_config.back_field_name}": translated_sentence,
+            f"{anki_config.extra_field_name}": "",
         },
         "tags": anki_config.tags,
     }

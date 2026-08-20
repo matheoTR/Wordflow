@@ -8,9 +8,9 @@ class AnkiConfig:
     card_model: str
     tags: list[str]
     allow_duplicates: bool
-    front_field: str
-    translation_field: str
-    additionnal_info_field: str
+    front_field_name: str
+    back_field_name: str
+    extra_field_name: str
 
 
 @dataclass

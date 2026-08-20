@@ -81,7 +81,9 @@ def resolve_anki_config(config: dict, cli_lang: str | None = None) -> AnkiConfig
 
     anki_general = config.get("anki", {})
     anki_defaults = anki_general.get("default", {})
+    anki_defaults_fields = anki_defaults.get("fields", {})
     anki_override = anki_general.get(str(active_lang), {})
+    anki_override_fields = anki_override.get("fields", {})
 
     # overrides if exists, otherwise falls back to default
     anki_config = AnkiConfig(
@@ -94,12 +96,14 @@ def resolve_anki_config(config: dict, cli_lang: str | None = None) -> AnkiConfig
         allow_duplicates=anki_override.get(
             "allow_duplicates", anki_defaults.get("allow_duplicates")
         ),
-        front_field=anki_override.get("front_field", anki_defaults.get("front_field")),
-        translation_field=anki_override.get(
-            "translation_field", anki_defaults.get("translation_field")
+        front_field_name=anki_override_fields.get(
+            "front_field_name", anki_defaults_fields.get("front_field_name")
         ),
-        additionnal_info_field=anki_override.get(
-            "additionnal_info_field", anki_defaults.get("additionnal_info_field")
+        back_field_name=anki_override_fields.get(
+            "back_field_name", anki_defaults_fields.get("back_field_name")
+        ),
+        extra_field_name=anki_override_fields.get(
+            "extra_field_name", anki_defaults_fields.get("extra_field_name")
         ),
     )
     return anki_config

@@ -4,7 +4,7 @@ from .clipboard import get_text, ClipboardError
 from .translator import translate, TranslationError
 from .notifications import notify
 from .anki_flashcard import make_cloze
-from .my_classes import *
+from .my_classes import TranslatorConfig, AnkiConfig, GlobalConfig
 
 
 def translate_workflow(
@@ -116,11 +116,11 @@ def cloze_workflow(
         #
         # 4. Make the cloze card and send it to anki
         res = make_cloze(
-            original_sentence,
-            translated_sentence,
-            original_word,
-            translated_word,
-            anki_config,
+            original_sentence=original_sentence,
+            translated_sentence=translated_sentence,
+            original_word=original_word,
+            translated_word=translated_word,
+            anki_config=anki_config,
         )
         # 5. Notify success
         notify(

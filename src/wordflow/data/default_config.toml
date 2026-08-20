@@ -64,9 +64,9 @@ tags = ["wordflow", "auto-generated"]
 
 # Map <internal_field_name> = "<anki_field_name>"
 [anki.default.fields]
-front = "front"
-translation = "translation"
-additional_notes = "additional notes"
+front_field_name = "front"
+back_field_name = "translation"
+extra_field_name = "additional notes"
 
 
 # ------------------------------------------------------------------------------
@@ -76,17 +76,17 @@ additional_notes = "additional notes"
 
 # Override for Chinese (-l zh)
 [anki.zh]
-default_deck = "Languages::Chinese"
+deck = "Languages::Chinese"
 card_model = "Chinese Hanzi Cloze"
 
 [anki.zh.fields]
-front = "Hanzi"
-translation = "Pinyin_Translation"
-additional_notes = "Stroke_Order"
+front_field_name = "Hanzi"
+back_field_name = "Pinyin_Translation"
+extra_field_name = "Stroke_Order"
 
 # Override for Dutch (-l nl)
 [anki.nl]
-default_deck = "Languages::Dutch"
+deck = "Languages::Dutch"
 # fields fall back to [anki.default.fields] automatically
 
 
