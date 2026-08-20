@@ -17,7 +17,7 @@ def translate_workflow(
         # 2. Get translation
         translated_text = translate(
             original_text=original_text,
-            native_language=global_config.native_language,
+            target_language=global_config.target_language,
             translator_name=translator_config.translator,
             api_key=translator_config.api_key,
             api_base_url=translator_config.api_base_url,
@@ -94,7 +94,7 @@ def cloze_workflow(
         # 3. Translate sentence and word
         translated_sentence = translate(
             original_text=original_sentence,
-            native_language=global_config.native_language,
+            target_language=global_config.target_language,
             translator_name=translator_config.translator,
             api_key=translator_config.api_key,
             api_base_url=translator_config.api_base_url,
@@ -102,7 +102,7 @@ def cloze_workflow(
         )
         translated_word = translate(
             original_text=original_word,
-            native_language=global_config.native_language,
+            target_language=global_config.target_language,
             translator_name=translator_config.translator,
             api_key=translator_config.api_key,
             api_base_url=translator_config.api_base_url,

@@ -27,13 +27,13 @@ API_KEY_TRANSLATORS = [
 def translate(
     original_text: str,
     translator_name: str = "GoogleTranslator",
-    native_language: str = "en",
+    target_language: str = "en",
     api_key: str = "",
     api_base_url: str = "",
     engine_model: str = "",
 ) -> str:
     """
-    Takes text in any language and translates it into native_language,
+    Takes text in any language and translates it into target_language,
     supporting optional API keys, base URLs, and engine models.
     """
     text_to_translate = original_text.strip()
@@ -56,7 +56,7 @@ def translate(
                 f"'{translator_name}' requires an API key, but none is set in your config."
             )
 
-        init_args = {"source": "auto", "target": native_language}
+        init_args = {"source": "auto", "target": target_language}
 
         if api_key:
             init_args["api_key"] = api_key

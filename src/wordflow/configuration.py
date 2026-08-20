@@ -69,7 +69,7 @@ def load_config(cli_lang: str | None = None):
 
             global_data = config.get("global", {})
             global_config = GlobalConfig(
-                native_language=global_data.get("native_language", "en"),
+                target_language=global_data.get("target_language", "en"),
                 confirm_before_add=global_data.get("confirm_before_add", False),
                 enable_notifications=global_data.get("enable_notifications", True),
             )
@@ -92,7 +92,7 @@ def resolve_anki_config(config: dict, cli_lang: str | None = None) -> AnkiConfig
     """
 
     # resolve active language
-    active_lang = cli_lang or config.get("global", {}).get("target_language")
+    active_lang = cli_lang or config.get("global", {}).get("source_language")
 
     anki_general = config.get("anki", {})
     anki_defaults = anki_general.get("default", {})
@@ -104,7 +104,7 @@ def resolve_anki_config(config: dict, cli_lang: str | None = None) -> AnkiConfig
     anki_config = AnkiConfig(
         url=anki_override.get("url", anki_defaults.get("url")),
         deck=anki_override.get("deck", anki_defaults.get("deck")).replace(
-            "{target_language}", str(active_lang)
+            "{source_language}", str(active_lang)
         ),
         card_model=anki_override.get("card_model", anki_defaults.get("card_model")),
         tags=anki_override.get("tags", anki_defaults.get("tags")),

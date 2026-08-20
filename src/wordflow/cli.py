@@ -3,6 +3,7 @@
 # wordflow --cloze (--lang)
 # wordflow --help
 # wordflow --wizard
+# wordflow --print_config
 
 import sys
 import argparse
@@ -64,6 +65,12 @@ def get_parser():
     group.add_argument(
         "-m", "--manual", action="store_true", help="Print the full user manual."
     )
+
+    group.add_argument(
+        "--print_config",
+        action="store_true",
+        help="print current configuration file and path to file",
+    )
     parser.add_argument(
         "-l",
         "--lang",
@@ -85,12 +92,15 @@ def main():
 
     args = parser.parse_args()
     try:
-        # 2. Handle manual and wizard
+        # 2. Handle manual, config and wizard
         if args.manual:
             print_manual()
             sys.exit(0)
         if args.wizard:
             launch_wizard()
+            sys.exit(0)
+        if args.print_config:
+            print_config()
             sys.exit(0)
 
         # 3. loads configuration as 3 dictionnaries

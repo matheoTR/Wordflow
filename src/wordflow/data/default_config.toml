@@ -5,8 +5,8 @@
 # ------------------------------------------------------------------------------
 [global]
 # ISO 639-1 language codes (e.g., "en", "zh", "nl", "fr", "es")
-native_language = "en"
-target_language = "es" #language used for default anki settings. You can override this with the --lang (-l) flag to use different deck settings
+target_language = "en"
+source_language = "es" #language used for default anki settings. You can override this with the --lang (-l) flag to use different deck settings
 
 # Ask for confirmation before adding the card to Anki (interactive prompt)
 confirm_before_add = true
@@ -49,9 +49,9 @@ engine_model = ""
 url = "http://localhost:8765"
 
 # Target deck name. 
-# Supports dynamic placeholders: {target_language}, {native_language}
-# Example: "Languages::{target_language}" creates cards in the deck: "Languages::es"
-deck = "Languages::{target_language}"
+# Supports dynamic placeholders: {source_language}, {target_language}
+# Example: "Languages::{source_language}" creates cards in the deck: "Languages::es"
+deck = "Languages::{source_language}"
 
 # The name of the note model in Anki
 card_model = "wordflow cloze"
