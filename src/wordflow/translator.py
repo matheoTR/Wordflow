@@ -1,4 +1,6 @@
 import deep_translator
+from langdetect import detect, DetectorFactory
+from langdetect.lang_detect_exception import LangDetectException
 import inspect
 
 
@@ -23,18 +25,22 @@ API_KEY_TRANSLATORS = [
     "QcriTranslator",
 ]
 
+DetectorFactory.seed = 0
+
 
 def translate(
     original_text: str,
-    translator_name: str = "GoogleTranslator",
+    source_language: str = "auto",
     target_language: str = "en",
+    translator_name: str = "GoogleTranslator",
     api_key: str = "",
     api_base_url: str = "",
     engine_model: str = "",
-) -> str:
+):
     """
     Takes text in any language and translates it into target_language,
     supporting optional API keys, base URLs, and engine models.
+    Returns : translated text, detected source language
     """
     text_to_translate = original_text.strip()
     if not text_to_translate:
@@ -50,13 +56,25 @@ def translate(
 
     TranslatorClass = getattr(deep_translator, translator_name)
 
+    # resolve source language for anki
+    if source_language == "auto":
+        try:
+            anki_source = detect(text_to_translate)
+        except LangDetectException:
+            # Fallback
+            anki_source = "unknown"
+        api_source = "auto"
+    else:
+        anki_source = source_language
+        api_source = source_language
+
     try:
         if translator_name in API_KEY_TRANSLATORS and not api_key:
             raise TranslationError(
                 f"'{translator_name}' requires an API key, but none is set in your config."
             )
 
-        init_args = {"source": "auto", "target": target_language}
+        init_args = {"source": api_source, "target": target_language}
 
         if api_key:
             init_args["api_key"] = api_key
@@ -84,7 +102,7 @@ def translate(
         if not translated_text:
             raise TranslationError("The translation API returned an empty response.")
 
-        return translated_text
+        return translated_text, anki_source
 
     except Exception as e:
         if isinstance(e, TranslationError):

@@ -72,11 +72,18 @@ def get_parser():
         help="print current configuration file and path to file",
     )
     parser.add_argument(
-        "-l",
-        "--lang",
+        "-sl",
+        "--source_language",
         type=str,
         default=None,
-        help="Override the target language",
+        help="Override the source language used for translation",
+    )
+    parser.add_argument(
+        "-tl",
+        "--target_language",
+        type=str,
+        default=None,
+        help="Override the target language used for translation",
     )
     return parser
 
@@ -103,15 +110,17 @@ def main():
             print_config()
             sys.exit(0)
 
-        # 3. loads configuration as 3 dictionnaries
-        translator_config, anki_config, global_config = load_config(args.lang)
+        # 3. loads configuration
+        global_config, translator_config, raw_anki_data = load_config(
+            args.source_language, args.target_language
+        )
 
         # 4. trigger workflow
         if args.translate:
-            translate_workflow(translator_config, global_config)
+            translate_workflow(global_config, translator_config)
 
         elif args.cloze:
-            cloze_workflow(translator_config, anki_config, global_config)
+            cloze_workflow(global_config, translator_config, raw_anki_data)
 
     except KeyboardInterrupt:
         notify(

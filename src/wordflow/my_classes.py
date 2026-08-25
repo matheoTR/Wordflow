@@ -23,6 +23,6 @@ class TranslatorConfig:
 
 @dataclass
 class GlobalConfig:
+    source_language: str
     target_language: str
-    confirm_before_add: bool = False
     enable_notifications: bool = True

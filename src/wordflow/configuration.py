@@ -32,10 +32,13 @@ def print_config():
         )
 
 
-def load_config(cli_lang: str | None = None):
+def load_config(
+    source_language_override: str | None = None,
+    target_language_override: str | None = None,
+):
     """
     reads user config or creates one if there is none
-    returns TranslatorConfig, AnkiConfig, GlobalConfig classes
+    returns GlobalConfig, TranslatorConfig classes, and raw anki data dictionnary
     """
 
     # create default config the first time
@@ -65,15 +68,17 @@ def load_config(cli_lang: str | None = None):
                 api_base_url=translator_data.get("api_base_url", ""),
                 engine_model=translator_data.get("engine_model", ""),
             )
-            anki_config = resolve_anki_config(config, cli_lang)
+            raw_anki_data = config.get("anki", {})
 
             global_data = config.get("global", {})
             global_config = GlobalConfig(
-                target_language=global_data.get("target_language", "en"),
-                confirm_before_add=global_data.get("confirm_before_add", False),
+                source_language=source_language_override
+                or global_data.get("source_language", "auto"),
+                target_language=target_language_override
+                or global_data.get("target_language", "en"),
                 enable_notifications=global_data.get("enable_notifications", True),
             )
-            return translator_config, anki_config, global_config
+            return global_config, translator_config, raw_anki_data
 
     except tomllib.TOMLDecodeError as e:
         # Catch syntax errors
@@ -84,27 +89,25 @@ def load_config(cli_lang: str | None = None):
         raise ConfigError(f"Permission denied: Cannot read {config_file}.")
 
 
-def resolve_anki_config(config: dict, cli_lang: str | None = None) -> AnkiConfig:
+def resolve_anki_config(
+    raw_anki_data: dict, active_language: str | None = None
+) -> AnkiConfig:
     """
     Merges [anki.default] with language-specific [anki.<lang>] overrides.
-    Returns a final config dictionnary with resolved names.
+    Returns a final AnkiConfig class with resolved names.
     if there is no override, simply returns the default anki config
     """
 
-    # resolve active language
-    active_lang = cli_lang or config.get("global", {}).get("source_language")
-
-    anki_general = config.get("anki", {})
-    anki_defaults = anki_general.get("default", {})
+    anki_defaults = raw_anki_data.get("default", {})
     anki_defaults_fields = anki_defaults.get("fields", {})
-    anki_override = anki_general.get(str(active_lang), {})
+    anki_override = raw_anki_data.get(str(active_language), {})
     anki_override_fields = anki_override.get("fields", {})
 
     # overrides if exists, otherwise falls back to default
     anki_config = AnkiConfig(
         url=anki_override.get("url", anki_defaults.get("url")),
         deck=anki_override.get("deck", anki_defaults.get("deck")).replace(
-            "{source_language}", str(active_lang)
+            "{source_language}", str(active_language)
         ),
         card_model=anki_override.get("card_model", anki_defaults.get("card_model")),
         tags=anki_override.get("tags", anki_defaults.get("tags")),

@@ -3,20 +3,22 @@ from time import sleep
 from .clipboard import get_text, ClipboardError
 from .translator import translate, TranslationError
 from .notifications import notify
-from .anki_flashcard import make_cloze
+from .anki_flashcard import DuplicateNoteError, make_cloze
 from .my_classes import TranslatorConfig, AnkiConfig, GlobalConfig
+from .configuration import resolve_anki_config
 
 
 def translate_workflow(
-    translator_config: TranslatorConfig, global_config: GlobalConfig
+    global_config: GlobalConfig, translator_config: TranslatorConfig
 ):
     """translates a word or sentence and outputs it in a notification"""
     try:
         # 1. Get text from primary or clipboad
         original_text = get_text()
         # 2. Get translation
-        translated_text = translate(
+        translated_text, _ = translate(
             original_text=original_text,
+            source_language=global_config.source_language,
             target_language=global_config.target_language,
             translator_name=translator_config.translator,
             api_key=translator_config.api_key,
@@ -54,11 +56,11 @@ def translate_workflow(
 
 
 def cloze_workflow(
-    translator_config: TranslatorConfig,
-    anki_config: AnkiConfig,
     global_config: GlobalConfig,
+    translator_config: TranslatorConfig,
+    raw_anki_data: dict,
 ):
-    """creates an anki cloze flashcard"""
+    """creates an anki cloze flashcard from clipboard, automatically detecting correct language settings"""
     try:
         # 1. Get text from primary | clipboad
         original_sentence = get_text()
@@ -92,16 +94,18 @@ def cloze_workflow(
             return
 
         # 3. Translate sentence and word
-        translated_sentence = translate(
+        translated_sentence, detected_source_language = translate(
             original_text=original_sentence,
+            source_language=global_config.source_language,
             target_language=global_config.target_language,
             translator_name=translator_config.translator,
             api_key=translator_config.api_key,
             api_base_url=translator_config.api_base_url,
             engine_model=translator_config.engine_model,
         )
-        translated_word = translate(
+        translated_word, _ = translate(
             original_text=original_word,
+            source_language=detected_source_language,
             target_language=global_config.target_language,
             translator_name=translator_config.translator,
             api_key=translator_config.api_key,
@@ -113,14 +117,16 @@ def cloze_workflow(
         # notify("DEBUG original_word: ", original_word)
         # notify("DEBUG translated_sentence: ", translated_sentence)
         # notify("DEBUG translated_word: ", translated_word)
-        #
+        resolved_anki_config = resolve_anki_config(
+            raw_anki_data, detected_source_language
+        )
         # 4. Make the cloze card and send it to anki
         res = make_cloze(
             original_sentence=original_sentence,
             translated_sentence=translated_sentence,
             original_word=original_word,
             translated_word=translated_word,
-            anki_config=anki_config,
+            anki_config=resolved_anki_config,
         )
         # 5. Notify success
         notify(
@@ -139,6 +145,13 @@ def cloze_workflow(
     except TranslationError as e:
         notify(
             "Translation Failed",
+            str(e),
+            urgency="critical",
+            enable_notifications=global_config.enable_notifications,
+        )
+    except DuplicateNoteError as e:
+        notify(
+            "Card Duplicate",
             str(e),
             urgency="critical",
             enable_notifications=global_config.enable_notifications,

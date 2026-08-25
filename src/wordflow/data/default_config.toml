@@ -5,11 +5,8 @@
 # ------------------------------------------------------------------------------
 [global]
 # ISO 639-1 language codes (e.g., "en", "zh", "nl", "fr", "es")
-target_language = "en"
-source_language = "es" #language used for default anki settings. You can override this with the --lang (-l) flag to use different deck settings
-
-# Ask for confirmation before adding the card to Anki (interactive prompt)
-confirm_before_add = true
+source_language = "auto" # translate from
+target_language = "en" # translate to
 
 # Send system notifications
 enable_notifications = true
@@ -41,7 +38,7 @@ engine_model = ""
 
 # ------------------------------------------------------------------------------
 # DEFAULT ANKI CONFIGURATION
-# Used if no -l/--lang flag is passed, or as fallbacks for missing language keys
+# Used by default for all languages unless language-based overrides are specified 
 # ------------------------------------------------------------------------------
 [anki]
 [anki.default]

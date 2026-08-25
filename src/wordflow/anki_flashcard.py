@@ -13,6 +13,10 @@ class AnkiConnectError(Exception):
     pass
 
 
+class DuplicateNoteError(Exception):
+    """raised if a duplicate note exists, so no card was created"""
+
+
 def invoke(url: str, action: str, **params):
     """
     Standard helper to send actions to AnkiConnect and handle its error format.
@@ -90,6 +94,15 @@ def setup_anki_model(
         print(res)
 
 
+def is_duplicate_note(url: str, note: dict) -> bool:
+    """
+    Returns True if the note already exists.
+    """
+    results = invoke(url, "canAddNotes", notes=[note])
+    # results is a list of booleans matching the input list
+    return not results[0] if results else False
+
+
 def make_cloze(
     original_sentence: str,
     translated_sentence: str,
@@ -139,4 +152,8 @@ def make_cloze(
         },
         "tags": anki_config.tags,
     }
+    if is_duplicate_note(anki_config.url, note) and not anki_config.allow_duplicates:
+        raise DuplicateNoteError(f"a note for '{clean_word}' already exists")
+
     invoke(anki_config.url, "addNote", note=note)
+    return True

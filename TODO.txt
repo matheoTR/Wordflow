@@ -1,6 +1,8 @@
 - first time configuration wizard
 - distinguish word from sentence translation
-- t should accept argument
 let params be changed from cli
 - let auto detect the language and follow deck rules automatically
-  remove confirm before add
+- remove confirm before add
+- let users add their own number of fields, and what to put in each field: word translation, sentence translation, word definition, synonyms
+- toggle reverso link/link to a definition
+
