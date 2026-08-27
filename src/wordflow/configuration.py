@@ -35,6 +35,8 @@ def print_config():
 def load_config(
     source_language_override: str | None = None,
     target_language_override: str | None = None,
+    notify: bool | None = None,
+    translator: str | None = None,
 ):
     """
     reads user config or creates one if there is none
@@ -63,7 +65,7 @@ def load_config(
             # Making the Objects
             translator_data = config.get("translator", {})
             translator_config = TranslatorConfig(
-                translator=translator_data.get("translator_name", ""),
+                translator=translator or translator_data.get("translator_name", ""),
                 api_key=translator_data.get("api_key", ""),
                 api_base_url=translator_data.get("api_base_url", ""),
                 engine_model=translator_data.get("engine_model", ""),
@@ -76,7 +78,9 @@ def load_config(
                 or global_data.get("source_language", "auto"),
                 target_language=target_language_override
                 or global_data.get("target_language", "en"),
-                enable_notifications=global_data.get("enable_notifications", True),
+                enable_notifications=notify
+                if notify is not None
+                else global_data.get("enable_notifications", True),
             )
             return global_config, translator_config, raw_anki_data
 
@@ -110,10 +114,11 @@ def resolve_anki_config(
             "{source_language}", str(active_language)
         ),
         card_model=anki_override.get("card_model", anki_defaults.get("card_model")),
-        tags=anki_override.get("tags", anki_defaults.get("tags")),
+        tags=anki_override.get("tags", anki_defaults.get("tags", "")),
         allow_duplicates=anki_override.get(
-            "allow_duplicates", anki_defaults.get("allow_duplicates")
+            "allow_duplicates", anki_defaults.get("allow_duplicates", False)
         ),
+        dict_url=anki_override.get("dict_url", anki_defaults.get("dict_url", "")),
         front_field_name=anki_override_fields.get(
             "front_field_name", anki_defaults_fields.get("front_field_name")
         ),

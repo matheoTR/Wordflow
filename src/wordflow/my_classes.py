@@ -7,6 +7,7 @@ class AnkiConfig:
     deck: str
     card_model: str
     tags: list[str]
+    dict_url: str
     allow_duplicates: bool
     front_field_name: str
     back_field_name: str

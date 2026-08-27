@@ -4,7 +4,8 @@
 
 import requests
 import re
-from .my_classes import AnkiConfig
+from .my_classes import AnkiConfig, GlobalConfig
+import urllib.parse
 
 
 class AnkiConnectError(Exception):
@@ -47,10 +48,9 @@ def setup_anki_model(
     with the exact fields and dark-mode styling needed.
     """
     existing_models = invoke(url, "modelNames")
-    print(existing_models)
-    print(f"Is '{model_name}' in Anki? -> {model_name in existing_models}\n")
-    # map lowercase names
-    # existing_models_lowered = {m.lower(): m for m in existing_models}
+    # DEBUG
+    # print(existing_models)
+    # print(f"Is '{model_name}' in Anki? -> {model_name in existing_models}\n")
 
     # if wordflow cloze model does not exist, we create it
     if model_name not in existing_models:
@@ -64,13 +64,13 @@ def setup_anki_model(
         extra_anki = f"{{{{{extra_field_name}}}}}"
 
         # DEBUG
-        print("front: ", front_anki)
-        print("trans: ", back_anki)
-        print("notes: ", extra_anki)
-        print("css: ", css)
-        print("front_field_name: ", front_field_name)
-        print("translation_field_name: ", back_field_name)
-        print("additionnal_info_field_name: ", extra_field_name)
+        # print("front: ", front_anki)
+        # print("trans: ", back_anki)
+        # print("notes: ", extra_anki)
+        # print("css: ", css)
+        # print("front_field_name: ", front_field_name)
+        # print("translation_field_name: ", back_field_name)
+        # print("additionnal_info_field_name: ", extra_field_name)
 
         res = invoke(
             url,
@@ -109,13 +109,16 @@ def make_cloze(
     original_word: str,
     translated_word: str,
     anki_config: AnkiConfig,
+    source_language: str,
+    target_language: str,
 ):
     """
     makes a cloze flashcard and sends it to anki through AnkiConnect
     based on language and packet
     """
     # check environment (create card type and deck if non-existing)
-    print("Model name: ", anki_config.card_model)
+    # DEBUG:
+    # print("Model name: ", anki_config.card_model)
     setup_anki_model(
         anki_config.url,
         anki_config.card_model,
@@ -131,7 +134,27 @@ def make_cloze(
     clean_translated_word = translated_word.strip()
 
     # CARD FIELDS
-    cloze_field = f"{{{{c1::{clean_word}::{clean_translated_word}}}}}"
+    cloze_tag = f"{{{{c1::{clean_word}::{clean_translated_word}}}}}"
+
+    # Check if dictionnary url is configured
+    dict_url_template = anki_config.dict_url
+    # DEBUG
+    print("is there deck url? ", anki_config.dict_url)
+
+    if dict_url_template:
+        # url encode the word
+        safe_word = urllib.parse.quote(clean_word)
+        final_url = dict_url_template.format(
+            word=safe_word,
+            source_language=source_language,
+            target_language=target_language,
+        )
+        cloze_field = f'<a href="{final_url}">{cloze_tag}</a>'
+    else:
+        cloze_field = cloze_tag
+
+    # DEBUG
+    print(cloze_field)
     # case-insensitive replacement
     pattern = re.compile(re.escape(clean_word), re.IGNORECASE)
     front_field = pattern.sub(cloze_field, clean_sentence)

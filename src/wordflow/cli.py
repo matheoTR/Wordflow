@@ -71,6 +71,7 @@ def get_parser():
         action="store_true",
         help="print current configuration file and path to file",
     )
+    # Commandline Overrides
     parser.add_argument(
         "-sl",
         "--source_language",
@@ -85,6 +86,17 @@ def get_parser():
         default=None,
         help="Override the target language used for translation",
     )
+    parser.add_argument(
+        "--notify",
+        action=argparse.BooleanOptionalAction,
+        help="Enable or disable notifications (overrides config.toml)",
+    )
+    parser.add_argument(
+        "--translator",
+        type=str,
+        default=None,
+        help="Override translator used for translation",
+    )
     return parser
 
 
@@ -98,6 +110,7 @@ def main():
         sys.exit(1)
 
     args = parser.parse_args()
+
     try:
         # 2. Handle manual, config and wizard
         if args.manual:
@@ -112,7 +125,7 @@ def main():
 
         # 3. loads configuration
         global_config, translator_config, raw_anki_data = load_config(
-            args.source_language, args.target_language
+            args.source_language, args.target_language, args.notify, args.translator
         )
 
         # 4. trigger workflow

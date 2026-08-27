@@ -14,7 +14,7 @@ def notify(
     Sends a Linux desktop notification using notify-send, or simply prints message to terminal
     """
     if not enable_notifications:
-        print(message)
+        print(title, "\n", message)
         return
 
     # Check if notify-send is installed on the user's system

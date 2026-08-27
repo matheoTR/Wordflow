@@ -103,6 +103,7 @@ def cloze_workflow(
             api_base_url=translator_config.api_base_url,
             engine_model=translator_config.engine_model,
         )
+        # translates word using previously detected language if not specified
         translated_word, _ = translate(
             original_text=original_word,
             source_language=detected_source_language,
@@ -127,11 +128,13 @@ def cloze_workflow(
             original_word=original_word,
             translated_word=translated_word,
             anki_config=resolved_anki_config,
+            source_language=detected_source_language,
+            target_language=global_config.target_language,
         )
         # 5. Notify success
         notify(
             "Anki Success",
-            f"Cloze card created for: '{original_word}'",
+            f"Cloze card created for: '{original_word}' in {resolved_anki_config.deck}",
             enable_notifications=global_config.enable_notifications,
         )
 

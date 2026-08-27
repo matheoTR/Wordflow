@@ -28,6 +28,50 @@ API_KEY_TRANSLATORS = [
 DetectorFactory.seed = 0
 
 
+def adapt_lang_code(lang_code: str, translator_name: str) -> str:
+    """
+    Adapts standard ISO codes to engine-specific formats.
+    """
+    code = lang_code.lower()
+
+    # 1. Exact string overrides for specific language + engine pairings
+    exceptions = {
+        "zh-cn": {
+            "GoogleTranslator": "zh-CN",
+            "MyMemoryTranslator": "zh-CN",
+            "DeeplTranslator": "ZH",
+        },
+        "zh-tw": {
+            "GoogleTranslator": "zh-TW",
+            "MyMemoryTranslator": "zh-TW",
+            "DeeplTranslator": "ZH",
+        },
+        "yue": {
+            "GoogleTranslator": "zh-TW",
+            "MyMemoryTranslator": "zh-TW",
+        },
+        "en": {
+            "DeeplTranslator": "EN-US",
+        },
+        "pt": {
+            "DeeplTranslator": "PT-PT",
+        },
+    }
+
+    # Resolve mapping if an exception exists
+    # 95% of languages work as is and will skip this
+    if code in exceptions and translator_name in exceptions[code]:
+        adapted_code = exceptions[code][translator_name]
+    else:
+        adapted_code = code
+
+    # Engine-wide formatting quirks
+    if translator_name == "DeeplTranslator":
+        return adapted_code.upper()
+
+    return adapted_code
+
+
 def translate(
     original_text: str,
     source_language: str = "auto",
@@ -68,13 +112,20 @@ def translate(
         anki_source = source_language
         api_source = source_language
 
+    # DEBUG
+    print("detected language: ", anki_source)
     try:
         if translator_name in API_KEY_TRANSLATORS and not api_key:
             raise TranslationError(
                 f"'{translator_name}' requires an API key, but none is set in your config."
             )
 
-        init_args = {"source": api_source, "target": target_language}
+        # formatting for the translator
+        api_source_formatted = adapt_lang_code(api_source, translator_name)
+        api_target_formatted = adapt_lang_code(target_language, translator_name)
+        # DEBUG
+        print("api source formatted: ", api_source_formatted)
+        init_args = {"source": api_source_formatted, "target": api_target_formatted}
 
         if api_key:
             init_args["api_key"] = api_key

@@ -4,7 +4,8 @@
 # ==============================================================================
 # ------------------------------------------------------------------------------
 [global]
-# ISO 639-1 language codes (e.g., "en", "zh", "nl", "fr", "es")
+# ISO 639-1 language codes (e.g., "en", "zh-cn", "nl", "fr", "es")
+# full list at: https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
 source_language = "auto" # translate from
 target_language = "en" # translate to
 
@@ -14,14 +15,6 @@ enable_notifications = true
 [translator]
 # Supported engines: 
 # "GoogleTranslator",
-# "MyMemoryTranslator",
-# "LingueeTranslator",
-# "PonsTranslator",
-# "DeeplTranslator",
-# "ChatGptTranslator",
-# "MicrosoftTranslator",
-# "YandexTranslator",
-# "QcriTranslator",
 translator_name = "GoogleTranslator"
 
 # Required for paid/authenticated APIs (DeepL, OpenAI, etc.)
@@ -59,6 +52,15 @@ allow_duplicates = false
 # Default tags automatically attached to every card added by this tool
 tags = ["wordflow", "auto-generated"]
 
+# Dictionnary url
+# uncomment this if you want to add automatic dictionnary hyperlinks in your cloze cards
+# you can change it to any url with a predictable url scheme. 
+# dynamic placeholders are: {source_language} {target_language} {word}
+# examples:
+# dict_url=https://context.reverso.net/translation/{source_language}-{target_language}/{word}
+# dict_url=https://en.wiktionary.org/wiki/{word}
+dict_url = "https://glosbe.com/{source_language}/{target_language}/{word}"
+
 # Map <internal_field_name> = "<anki_field_name>"
 [anki.default.fields]
 front_field_name = "front"
@@ -71,12 +73,12 @@ extra_field_name = "additional notes"
 # Triggered when passing -l/--lang <language_iso_code>
 # ------------------------------------------------------------------------------
 
-# Override for Chinese (-l zh)
-[anki.zh]
+# Override for Chinese (-l zh-cn)
+[anki.zh-cn]
 deck = "Languages::Chinese"
 card_model = "Chinese Hanzi Cloze"
 
-[anki.zh.fields]
+[anki.zh-cn.fields]
 front_field_name = "Hanzi"
 back_field_name = "Pinyin_Translation"
 extra_field_name = "Stroke_Order"
