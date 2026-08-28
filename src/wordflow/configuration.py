@@ -3,6 +3,7 @@
 import tomllib
 from pathlib import Path
 from importlib.resources import files
+import tomli_w
 
 from .my_classes import GlobalConfig, TranslatorConfig, AnkiConfig
 
@@ -32,19 +33,9 @@ def print_config():
         )
 
 
-def load_config(
-    source_language_override: str | None = None,
-    target_language_override: str | None = None,
-    notify: bool | None = None,
-    translator: str | None = None,
-):
-    """
-    reads user config or creates one if there is none
-    returns GlobalConfig, TranslatorConfig classes, and raw anki data dictionnary
-    """
-
-    # create default config the first time
-    if not config_file.exists():
+def create_config(config_dict: dict | None = None):
+    # create default config
+    if not config_dict:
         try:
             default_config = (
                 files("wordflow")
@@ -58,6 +49,35 @@ def load_config(
 
         config_dir.mkdir(parents=True, exist_ok=True)
         config_file.write_text(default_config.strip(), encoding="utf-8")
+        return 0
+    # else we make a custom config (from the wizard)
+    try:
+        config_dir.mkdir(parents=True, exist_ok=True)
+        with open(config_file, "wb") as f:
+            tomli_w.dump(config_dict, f)
+        return config_file
+
+    except Exception as e:
+        # Fallback error handling if there's a permission issue
+        raise ConfigError(
+            f"\n[-] Critical Error: Failed to write config file. \n Details: {e}"
+        )
+
+
+def load_config(
+    source_language_override: str | None = None,
+    target_language_override: str | None = None,
+    notify: bool | None = None,
+    translator: str | None = None,
+):
+    """
+    reads user config or creates one if there is none
+    returns GlobalConfig, TranslatorConfig classes, and raw anki data dictionnary
+    """
+
+    # create default config the first time
+    if not config_file.exists():
+        create_config()
 
     try:
         with open(config_file, "rb") as f:
@@ -103,9 +123,9 @@ def resolve_anki_config(
     """
 
     anki_defaults = raw_anki_data.get("default", {})
-    anki_defaults_fields = anki_defaults.get("fields", {})
+    # anki_defaults_fields = anki_defaults.get("fields", {})
     anki_override = raw_anki_data.get(str(active_language), {})
-    anki_override_fields = anki_override.get("fields", {})
+    # anki_override_fields = anki_override.get("fields", {})
 
     # overrides if exists, otherwise falls back to default
     anki_config = AnkiConfig(
@@ -119,14 +139,8 @@ def resolve_anki_config(
             "allow_duplicates", anki_defaults.get("allow_duplicates", False)
         ),
         dict_url=anki_override.get("dict_url", anki_defaults.get("dict_url", "")),
-        front_field_name=anki_override_fields.get(
-            "front_field_name", anki_defaults_fields.get("front_field_name")
-        ),
-        back_field_name=anki_override_fields.get(
-            "back_field_name", anki_defaults_fields.get("back_field_name")
-        ),
-        extra_field_name=anki_override_fields.get(
-            "extra_field_name", anki_defaults_fields.get("extra_field_name")
+        field_names=anki_override.get(
+            "field_names", anki_defaults.get("field_names", ["front", "back"])
         ),
     )
     return anki_config

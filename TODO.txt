@@ -1,7 +1,5 @@
-- first time configuration wizard
-- let users add their own number of fields, and what to put in each field: word translation, sentence translation, word definition, synonyms
-- disable extra field
-- THEN make each translator work, by adapting language codes 
+- add audio
+- make each translator work, by adapting language codes 
 # "MyMemoryTranslator",
 # "LingueeTranslator",
 # "PonsTranslator",

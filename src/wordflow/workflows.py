@@ -1,9 +1,7 @@
-from time import sleep
-
-from .clipboard import get_text, ClipboardError
+from .clipboard import get_text, ClipboardError, TimeOutError
 from .translator import translate, TranslationError
 from .notifications import notify
-from .anki_flashcard import DuplicateNoteError, make_cloze
+from .anki_flashcard import AnkiConnectError, DuplicateNoteError, make_cloze
 from .my_classes import TranslatorConfig, AnkiConfig, GlobalConfig
 from .configuration import resolve_anki_config
 
@@ -46,6 +44,13 @@ def translate_workflow(
             urgency="critical",
             enable_notifications=global_config.enable_notifications,
         )
+    except TimeOutError as e:
+        notify(
+            "Timeout Error",
+            str(e),
+            urgency="critical",
+            enable_notifications=global_config.enable_notifications,
+        )
     except Exception as e:
         notify(
             "Unexpected Error",
@@ -62,36 +67,21 @@ def cloze_workflow(
 ):
     """creates an anki cloze flashcard from clipboard, automatically detecting correct language settings"""
     try:
-        # 1. Get text from primary | clipboad
+        # 1. Get sentence
+        # notify(
+        #     "(1/2) cloze waiting...",
+        #     "highlight a sentence",
+        #     enable_notifications=global_config.enable_notifications,
+        # )
         original_sentence = get_text()
+
+        # 2. Get word to cloze
         notify(
-            "cloze waiting...",
-            "highlight a word to create a cloze flashcard",
+            "Cloze waiting...",
+            "highlight the word to cloze",
             enable_notifications=global_config.enable_notifications,
         )
-        # 2. Get cloze target
-        original_word = original_sentence
-        timeout_reached = True
-        for _ in range(10):
-            try:
-                current_highlight = get_text()
-            except ClipboardError:
-                current_highlight = original_sentence
-
-            if current_highlight != original_sentence:
-                original_word = current_highlight
-                timeout_reached = False
-                break
-            else:
-                sleep(1)
-
-        if timeout_reached:
-            notify(
-                "Cloze Cancelled",
-                "No new word was highlighted in time.",
-                enable_notifications=global_config.enable_notifications,
-            )
-            return
+        word_to_cloze = get_text(original_sentence)
 
         # 3. Translate sentence and word
         translated_sentence, detected_source_language = translate(
@@ -105,7 +95,7 @@ def cloze_workflow(
         )
         # translates word using previously detected language if not specified
         translated_word, _ = translate(
-            original_text=original_word,
+            original_text=word_to_cloze,
             source_language=detected_source_language,
             target_language=global_config.target_language,
             translator_name=translator_config.translator,
@@ -118,14 +108,16 @@ def cloze_workflow(
         # notify("DEBUG original_word: ", original_word)
         # notify("DEBUG translated_sentence: ", translated_sentence)
         # notify("DEBUG translated_word: ", translated_word)
+
+        # 4. Resolve anki config to match detected language (or override)
         resolved_anki_config = resolve_anki_config(
             raw_anki_data, detected_source_language
         )
-        # 4. Make the cloze card and send it to anki
+        # 5. Make the cloze card and send it to anki
         res = make_cloze(
             original_sentence=original_sentence,
             translated_sentence=translated_sentence,
-            original_word=original_word,
+            original_word=word_to_cloze,
             translated_word=translated_word,
             anki_config=resolved_anki_config,
             source_language=detected_source_language,
@@ -134,7 +126,7 @@ def cloze_workflow(
         # 5. Notify success
         notify(
             "Anki Success",
-            f"Cloze card created for: '{original_word}' in {resolved_anki_config.deck}",
+            f"Cloze card created for: '{word_to_cloze}' in {resolved_anki_config.deck}",
             enable_notifications=global_config.enable_notifications,
         )
 
@@ -159,9 +151,23 @@ def cloze_workflow(
             urgency="critical",
             enable_notifications=global_config.enable_notifications,
         )
-    except Exception as e:
+    except TimeOutError as e:
+        notify(
+            "Timeout Error",
+            "Cancelling cloze creation.",
+            urgency="critical",
+            enable_notifications=global_config.enable_notifications,
+        )
+    except AnkiConnectError as e:
         notify(
             "Anki Error",
+            str(e),
+            urgency="critical",
+            enable_notifications=global_config.enable_notifications,
+        )
+    except Exception as e:
+        notify(
+            "Unexpected Error",
             str(e),
             urgency="critical",
             enable_notifications=global_config.enable_notifications,

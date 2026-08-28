@@ -9,8 +9,7 @@
 source_language = "auto" # translate from
 target_language = "en" # translate to
 
-# Send system notifications
-enable_notifications = true
+enable_notifications = true # Send system notifications
 
 [translator]
 # Supported engines: 
@@ -40,16 +39,19 @@ url = "http://localhost:8765"
 
 # Target deck name. 
 # Supports dynamic placeholders: {source_language}, {target_language}
-# Example: "Languages::{source_language}" creates cards in the deck: "Languages::es"
+# Example: "Languages::{source_language}" creates cards in the deck: "Languages::es" if 'es' is your source_language
 deck = "Languages::{source_language}"
 
 # The name of the note model in Anki
 card_model = "wordflow cloze"
 
+# Map your personal field names 
+field_names = ["front", "translation", "additional notes"]
+
 # Allow duplicate cards if the same word/cloze already exists in the deck?
 allow_duplicates = false
 
-# Default tags automatically attached to every card added by this tool
+# Default tags automatically attached to every card added by wordflow
 tags = ["wordflow", "auto-generated"]
 
 # Dictionnary url
@@ -61,13 +63,6 @@ tags = ["wordflow", "auto-generated"]
 # dict_url=https://en.wiktionary.org/wiki/{word}
 dict_url = "https://glosbe.com/{source_language}/{target_language}/{word}"
 
-# Map <internal_field_name> = "<anki_field_name>"
-[anki.default.fields]
-front_field_name = "front"
-back_field_name = "translation"
-extra_field_name = "additional notes"
-
-
 # ------------------------------------------------------------------------------
 # LANGUAGE-SPECIFIC OVERRIDES
 # Triggered when passing -l/--lang <language_iso_code>
@@ -77,11 +72,7 @@ extra_field_name = "additional notes"
 [anki.zh-cn]
 deck = "Languages::Chinese"
 card_model = "Chinese Hanzi Cloze"
-
-[anki.zh-cn.fields]
-front_field_name = "Hanzi"
-back_field_name = "Pinyin_Translation"
-extra_field_name = "Stroke_Order"
+field_names = ["Hanzi", "Translation", "Stroke_Order"]
 
 # Override for Dutch (-l nl)
 [anki.nl]

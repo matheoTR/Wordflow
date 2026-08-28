@@ -9,9 +9,7 @@ class AnkiConfig:
     tags: list[str]
     dict_url: str
     allow_duplicates: bool
-    front_field_name: str
-    back_field_name: str
-    extra_field_name: str
+    field_names: list[str]
 
 
 @dataclass

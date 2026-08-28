@@ -11,10 +11,10 @@ from importlib.resources import files
 import traceback
 
 # local modules
-from .configuration import load_config, print_config
+from .configuration import create_config, load_config, print_config
 from .workflows import translate_workflow, cloze_workflow
 from .wizard import launch_wizard
-from .my_classes import *
+from .my_classes import GlobalConfig, AnkiConfig, TranslatorConfig
 from .notifications import notify
 
 
@@ -117,7 +117,8 @@ def main():
             print_manual()
             sys.exit(0)
         if args.wizard:
-            launch_wizard()
+            config = launch_wizard()
+            create_config(config)
             sys.exit(0)
         if args.print_config:
             print_config()

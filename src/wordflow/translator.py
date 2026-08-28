@@ -2,6 +2,7 @@ import deep_translator
 from langdetect import detect, DetectorFactory
 from langdetect.lang_detect_exception import LangDetectException
 import inspect
+from .constants import SUPPORTED_TRANSLATORS, FREE_TRANSLATORS, API_KEY_TRANSLATORS
 
 
 class TranslationError(Exception):
@@ -9,21 +10,6 @@ class TranslationError(Exception):
 
     pass
 
-
-FREE_TRANSLATORS = [
-    "GoogleTranslator",
-    "MyMemoryTranslator",
-    "LingueeTranslator",
-    "PonsTranslator",
-]
-
-API_KEY_TRANSLATORS = [
-    "DeeplTranslator",
-    "ChatGptTranslator",
-    "MicrosoftTranslator",
-    "YandexTranslator",
-    "QcriTranslator",
-]
 
 DetectorFactory.seed = 0
 
@@ -90,12 +76,10 @@ def translate(
     if not text_to_translate:
         raise TranslationError("No text was provided for translation.")
 
-    if (
-        not hasattr(deep_translator, translator_name)
-        or translator_name == "PapagoTranslator"
-    ):
+    if translator_name not in SUPPORTED_TRANSLATORS:
         raise TranslationError(
-            f"Translator '{translator_name}' is not recognized. please check manual or config file for full list of supported translators"
+            f"Translator '{translator_name}' is not supported. "
+            f"Supported engines: {', '.join(SUPPORTED_TRANSLATORS)}"
         )
 
     TranslatorClass = getattr(deep_translator, translator_name)

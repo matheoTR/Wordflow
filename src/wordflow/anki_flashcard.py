@@ -4,7 +4,7 @@
 
 import requests
 import re
-from .my_classes import AnkiConfig, GlobalConfig
+from .my_classes import AnkiConfig
 import urllib.parse
 
 
@@ -36,17 +36,14 @@ def invoke(url: str, action: str, **params):
         raise AnkiConnectError(f"Could not reach Anki. Is it open? ({e})")
 
 
-def setup_anki_model(
-    url: str,
-    model_name: str,
-    front_field_name: str,
-    back_field_name: str,
-    extra_field_name: str,
-):
+def setup_anki_model(url: str, model_name: str, field_names: list[str]):
     """
     Checks if the required Cloze model exists. If not, it creates it
     with the exact fields and dark-mode styling needed.
     """
+    if not field_names:
+        raise ValueError("field_names must contain at least one field for the cloze.")
+
     existing_models = invoke(url, "modelNames")
     # DEBUG
     # print(existing_models)
@@ -59,9 +56,20 @@ def setup_anki_model(
         .cloze { font-weight: bold; color: #ffb86c; }
         #answer { border-top: 1px solid #6272a4; margin-top: 15px; padding-top: 15px; }
         """
-        front_anki = f"{{{{cloze:{front_field_name}}}}}"
-        back_anki = f"{{{{{back_field_name}}}}}"
-        extra_anki = f"{{{{{extra_field_name}}}}}"
+        # front
+        front_anki = f"{{{{cloze:{field_names[0]}}}}}"
+
+        # back
+        back_anki_parts = [f'{front_anki}<div id="answer">']
+        for field in field_names[1:]:
+            # Using Anki conditional rendering
+            # This ensures no whitespace is added if the field is left blank.
+            back_anki_parts.append(
+                f"{{{{#{field}}}}}<br><br>{{{{{{{field}}}}}}}{{{{/{field}}}}}"
+            )
+        back_anki_parts.append("</div>")
+        # we join all parts
+        back_anki = "".join(back_anki_parts)
 
         # DEBUG
         # print("front: ", front_anki)
@@ -76,22 +84,19 @@ def setup_anki_model(
             url,
             "createModel",
             modelName=model_name,
-            inOrderFields=[
-                front_field_name,
-                back_field_name,
-                extra_field_name,
-            ],
+            inOrderFields=field_names,
             isCloze=True,
             css=css,
             cardTemplates=[
                 {
                     "Name": "Wordflow Cloze",
                     "Front": front_anki,
-                    "Back": f"{front_anki}<div id=answer>{back_anki}<br><br>{extra_anki}</div>",
+                    "Back": back_anki,
                 }
             ],
         )
-        print(res)
+        # DEBUG
+        # print(res)
 
 
 def is_duplicate_note(url: str, note: dict) -> bool:
@@ -119,13 +124,8 @@ def make_cloze(
     # check environment (create card type and deck if non-existing)
     # DEBUG:
     # print("Model name: ", anki_config.card_model)
-    setup_anki_model(
-        anki_config.url,
-        anki_config.card_model,
-        anki_config.front_field_name,
-        anki_config.back_field_name,
-        anki_config.extra_field_name,
-    )
+    setup_anki_model(anki_config.url, anki_config.card_model, anki_config.field_names)
+    # make sure deck exists
     invoke(anki_config.url, "createDeck", deck=anki_config.deck)
 
     # clean trailing spaces
@@ -136,15 +136,11 @@ def make_cloze(
     # CARD FIELDS
     cloze_tag = f"{{{{c1::{clean_word}::{clean_translated_word}}}}}"
 
-    # Check if dictionnary url is configured
-    dict_url_template = anki_config.dict_url
-    # DEBUG
-    print("is there deck url? ", anki_config.dict_url)
-
-    if dict_url_template:
+    # add dictionnary hyperlink
+    if anki_config.dict_url:
         # url encode the word
         safe_word = urllib.parse.quote(clean_word)
-        final_url = dict_url_template.format(
+        final_url = anki_config.dict_url.format(
             word=safe_word,
             source_language=source_language,
             target_language=target_language,
@@ -154,7 +150,7 @@ def make_cloze(
         cloze_field = cloze_tag
 
     # DEBUG
-    print(cloze_field)
+    # print(cloze_field)
     # case-insensitive replacement
     pattern = re.compile(re.escape(clean_word), re.IGNORECASE)
     front_field = pattern.sub(cloze_field, clean_sentence)
@@ -165,16 +161,19 @@ def make_cloze(
             f"Could not find the word '{clean_word}' inside the sentence. Cloze creation failed."
         )
 
+    # Create a populate field dictionnary.
+    # if user has extra custom fields, they are left blank (but will be passed to ankiconnect)
+    fields_dict = {field: "" for field in anki_config.field_names}
+    fields_dict[anki_config.field_names[0]] = front_field
+    fields_dict[anki_config.field_names[1]] = translated_sentence
+    # create payload
     note = {
         "deckName": anki_config.deck,
         "modelName": anki_config.card_model,
-        "fields": {
-            f"{anki_config.front_field_name}": front_field,
-            f"{anki_config.back_field_name}": translated_sentence,
-            f"{anki_config.extra_field_name}": "",
-        },
+        "fields": fields_dict,
         "tags": anki_config.tags,
     }
+    # check for duplicate
     if is_duplicate_note(anki_config.url, note) and not anki_config.allow_duplicates:
         raise DuplicateNoteError(f"a note for '{clean_word}' already exists")
 
