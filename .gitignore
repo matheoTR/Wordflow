@@ -16,8 +16,7 @@ dist/
 # Old bash
 old_bash/
 
-# Debug
-debug/
-
 # personnal workaround
 local_workaround.txt
+
+
