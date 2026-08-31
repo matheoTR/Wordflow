@@ -21,14 +21,9 @@ from .notifications import notify
 def print_manual():
     """Reads and prints the long-form manual."""
     try:
-        # temporary
-        # manual_path = Path(__file__).parent / "data" / "help_manual.txt"
-        # manual_text = manual_path.read_text(encoding="utf-8")
-        # print(manual_text)  # TODO: change to manual
-
         manual = (
             files(__package__)
-            .joinpath("data", "help_manual.txt")
+            .joinpath("data", "help_manual.md")
             .read_text(encoding="utf-8")
         )
         print(manual)

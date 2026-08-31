@@ -88,6 +88,9 @@ def translate(
     if source_language == "auto":
         try:
             anki_source = detect(text_to_translate)
+            # --- Afrikaans/Dutch Overlap Fix ---
+            if anki_source == "af":
+                anki_source = "nl"
         except LangDetectException:
             # Fallback
             anki_source = "unknown"
