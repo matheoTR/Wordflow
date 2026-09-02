@@ -64,12 +64,12 @@ This tool really shines if you bind shortcuts to call it. Then you can seamlessl
       --t : Translate
       hl.bind("T", function()
         hl.dispatch(hl.dsp.submap("reset"))
-        hl.dispatch(hl.dsp.exec_cmd("/home/Matheo/.local/bin/wordflow -t"))
+        hl.dispatch(hl.dsp.exec_cmd("wordflow -t"))
       end)
       --c : Cloze
       hl.bind("C", function()
         hl.dispatch(hl.dsp.submap("reset"))
-        hl.dispatch(hl.dsp.exec_cmd("/home/Matheo/.local/bin/wordflow -c"))
+        hl.dispatch(hl.dsp.exec_cmd("wordflow -c"))
       end)
 
       hl.bind("catchall", hl.dsp.submap("reset"))

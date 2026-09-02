@@ -37,4 +37,4 @@ wordflow = "wordflow.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-wordflow = ["data/*.toml", "data/*.txt"]
+wordflow = ["data/*.toml", "data/*.txt", "data/*.md"]

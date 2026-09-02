@@ -50,6 +50,7 @@ Ex:
 ## Usage
 ### 1. Instant Translation (-t)
 Highlight any text on your screen and then trigger the `wordflow --translate` command. Wordflow will detect the language, translate it, and send a desktop notification.
+Clicking the notification will also copy the translation, making it easy to copy paste.
 ### 2. Cloze Card Creation (-c)
 To create a flashcard, highlight the target word/sentence and trigger the `wordflow --cloze` command. Wordflow will automatically build the card and push it to Anki.
 ### Other
@@ -64,12 +65,12 @@ This tool really shines if you bind shortcuts to call it. Then you can seamlessl
       --t : Translate
       hl.bind("T", function()
         hl.dispatch(hl.dsp.submap("reset"))
-        hl.dispatch(hl.dsp.exec_cmd("/home/Matheo/.local/bin/wordflow -t"))
+        hl.dispatch(hl.dsp.exec_cmd("wordflow -t"))
       end)
       --c : Cloze
       hl.bind("C", function()
         hl.dispatch(hl.dsp.submap("reset"))
-        hl.dispatch(hl.dsp.exec_cmd("/home/Matheo/.local/bin/wordflow -c"))
+        hl.dispatch(hl.dsp.exec_cmd("wordflow -c"))
       end)
 
       hl.bind("catchall", hl.dsp.submap("reset"))

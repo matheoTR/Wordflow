@@ -2,6 +2,8 @@ import subprocess
 import shutil
 import sys
 
+from wordflow.clipboard import copy_to_clipboard
+
 
 def notify(
     title: str,
@@ -9,6 +11,7 @@ def notify(
     urgency: str = "normal",
     timeout: int = 5000,
     enable_notifications=True,
+    copy_output_to_clipboard=False,
 ):
     """
     Sends a Linux desktop notification using notify-send, or simply prints message to terminal
@@ -26,22 +29,46 @@ def notify(
         return
 
     try:
-        subprocess.run(
-            [
-                "notify-send",
-                "-a",
-                "wordflow",  # App name shown in notification center
-                "-u",
-                urgency,  # Urgency: low, normal, critical
-                "-t",
-                str(timeout),  # Timeout in milliseconds
-                title,
-                message,
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        if not copy_output_to_clipboard:
+            subprocess.run(
+                [
+                    "notify-send",
+                    "-a",
+                    "Wordflow",  # App name shown in notification center
+                    "-u",
+                    urgency,  # Urgency: low, normal, critical
+                    "-t",
+                    str(timeout),  # Timeout in milliseconds
+                    title,
+                    message,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        else:
+            process = subprocess.run(
+                [
+                    "notify-send",
+                    "-a",
+                    "Wordflow",
+                    "--action=default=Copy",
+                    "--wait",
+                    "-u",
+                    urgency,
+                    "-t",
+                    str(timeout),
+                    title,
+                    message,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            if process.stdout.strip() == "default":
+                # Push the translation to the Wayland clipboard
+                copy_to_clipboard(message)
+
     except subprocess.CalledProcessError as e:
         print(
             f"[Warning] Notification daemon error: {e.stderr.strip()}", file=sys.stderr

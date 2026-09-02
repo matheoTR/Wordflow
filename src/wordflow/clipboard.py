@@ -92,3 +92,13 @@ def get_clipboard_content() -> str:
     # blank return otherwise
     return ""
     # raise ClipboardError("No text found in primary selection.")
+
+
+def copy_to_clipboard(message: str):
+    """sends a message to store in the clipboard"""
+    if os.environ.get("WAYLAND_DISPLAY"):
+        clipboard_cmd = ["wl-copy"]
+    else:
+        clipboard_cmd = ["xclip", "-selection", "clipboard"]
+    # Push the translation to the clipboard
+    subprocess.run(clipboard_cmd, input=message, text=True, check=True)

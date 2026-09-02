@@ -28,6 +28,7 @@ def translate_workflow(
             "Translation: ",
             translated_text,
             enable_notifications=global_config.enable_notifications,
+            copy_output_to_clipboard=True,
         )
 
     except ClipboardError as e:
