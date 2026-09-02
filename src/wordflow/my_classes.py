@@ -10,6 +10,8 @@ class AnkiConfig:
     dict_url: str
     allow_duplicates: bool
     field_names: list[str]
+    audio_mode: str = "none"
+    audio_accent: str = "com"
 
 
 @dataclass

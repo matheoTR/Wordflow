@@ -1,7 +1,9 @@
 # Handles the JSON formatting and AnkiConnect requests
 # creates payload
 #
-
+import base64
+import time
+from gtts import gTTS
 import requests
 import re
 from .my_classes import AnkiConfig
@@ -161,11 +163,33 @@ def make_cloze(
             f"Could not find the word '{clean_word}' inside the sentence. Cloze creation failed."
         )
 
+    # add optional audio
+    audio_tag = ""
+    if anki_config.audio_mode == "word":
+        audio_tag = add_audio_to_anki(
+            url=anki_config.url,
+            text=original_word,
+            lang_code=source_language,
+            accent=anki_config.audio_accent,
+        )
+    elif anki_config.audio_mode == "sentence":
+        audio_tag = add_audio_to_anki(
+            url=anki_config.url,
+            text=original_sentence,
+            lang_code=source_language,
+            accent=anki_config.audio_accent,
+        )
+
     # Create a populate field dictionnary.
     # if user has extra custom fields, they are left blank (but will be passed to ankiconnect)
+    back_field_content = translated_sentence
+    if audio_tag:
+        back_field_content += f"<br><br>{audio_tag}"
+
     fields_dict = {field: "" for field in anki_config.field_names}
-    fields_dict[anki_config.field_names[0]] = front_field
-    fields_dict[anki_config.field_names[1]] = translated_sentence
+    fields_dict[anki_config.field_names[0]] = front_field  # front
+    fields_dict[anki_config.field_names[1]] = back_field_content  # back
+
     # create payload
     note = {
         "deckName": anki_config.deck,
@@ -179,3 +203,27 @@ def make_cloze(
 
     invoke(anki_config.url, "addNote", note=note)
     return True
+
+
+def add_audio_to_anki(url: str, text: str, lang_code: str, accent: str):
+    """uses text-to-speech to create an audio of the given text and returns the [sound:...] tag."""
+    # generate unique name for the tag
+    filename = f"wordflow_{int(time.time())}.mp3"
+    filepath = f"/tmp/{filename}"
+
+    # language code quirks. I will add more and I find them
+    gtts_lang = "zh-CN" if lang_code.lower() == "zh-cn" else lang_code
+
+    # generate audio
+    tts = gTTS(text=text, lang=gtts_lang, tld=accent)
+    tts.save(filepath)
+
+    # Read the MP3 and encode it to Base64
+    with open(filepath, "rb") as f:
+        audio_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    payload = {"filename": filename, "data": audio_b64}
+
+    invoke(url=url, action="storeMediaFile", **payload)
+
+    return f"[sound:{filename}]"

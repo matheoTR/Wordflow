@@ -54,6 +54,8 @@ allow_duplicates = false
 # Default tags automatically attached to every card added by wordflow
 tags = ["wordflow", "auto-generated"]
 
+# Audio mode: choose between none|word|sentence. It will create an automatic audio recording of the selection using gTTS
+audio_mode = "sentence"
 # Dictionnary url
 # uncomment this if you want to add automatic dictionnary hyperlinks in your cloze cards
 # you can change it to any url with a predictable url scheme. 
@@ -77,6 +79,9 @@ field_names = ["Hanzi", "Translation", "Stroke_Order"]
 # Override for Dutch (-l nl)
 [anki.nl]
 deck = "Languages::Dutch"
-# fields fall back to [anki.default.fields] automatically
+
+[anki.es]
+# experimental: change the accent by changing the top-level domain of the tts request. Please refer to https://gtts.readthedocs.io/en/latest/module.html#localized-accents for more info
+audio_accent = "com.mx"
 
 

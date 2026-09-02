@@ -142,5 +142,11 @@ def resolve_anki_config(
         field_names=anki_override.get(
             "field_names", anki_defaults.get("field_names", ["front", "back"])
         ),
+        audio_mode=anki_override.get(
+            "audio_mode", anki_defaults.get("audio_mode", "none")
+        ),
+        audio_accent=anki_override.get(
+            "audio_accent", anki_defaults.get("audio_accent", "com")
+        ),
     )
     return anki_config

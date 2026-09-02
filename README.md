@@ -2,7 +2,7 @@
 
 A lightning-fast, keyboard-driven language acquisition tool for Linux. 
 
-Wordflow bridges your system clipboard, translation APIs, and Anki into a single workflow. By simply highlighting text and pressing a shortcut, you can instantly translate sentences or dynamically generate Anki flashcards without ever leaving your browser, book, or current window.
+Wordflow bridges your system clipboard, translation APIs, Text-To-Speech and Anki into a single workflow. By simply highlighting text and pressing a shortcut, you can instantly translate sentences or dynamically generate cloze Anki flashcards without ever leaving your browser, book, or current window. It is also possible to easily copy a translation to clipboard, and to add automatically generated audio to your cards.
 
 ## ⚠️ Limitations & Scope
 Before installing, please note the intentional scope of this project:
@@ -40,13 +40,19 @@ Run the initialization wizard: `wordflow --init`
 This will guide you through setting up your preferred translation engine and default Anki deck, saving the results to ~/.config/wordflow/config.toml.
 ### Language-Specific Overrides
 You can manually edit config.toml to route different languages to different Anki decks and dictionaries. Wordflow automatically detects the language of your highlighted text and applies the correct settings.
-Ex: 
-#### Override for Chinese (Mandarin)
+#### Example
   [anki.zh-cn]
   deck = "Languages::Chinese"
   card_model = "Chinese Hanzi Cloze"
   field_names = ["Hanzi", "Pinyin", "Stroke_Order"]
   dict_url = "[https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb=](https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb=){word}"
+### Text-To-Speech (TTS)
+When `audio_mode` is enabled, Wordflow generates speech using Google's neural TTS engine. By default, it uses standard regional accents, but you can customize this by changing the optional `audio_accent` setting.
+The setting corresponds to the Google domain extension for the region you want to target (e.g., `google.co.uk` becomes `co.uk`). Please refer to https://gtts.readthedocs.io/en/latest/module.html#localized-accents for more info
+#### Example
+  [anki.en]
+  audio_mode = "word"
+  audio_accent = "co.uk"   # Will read English words with a British accent
 ## Usage
 ### 1. Instant Translation (-t)
 Highlight any text on your screen and then trigger the `wordflow --translate` command. Wordflow will detect the language, translate it, and send a desktop notification.
@@ -54,7 +60,7 @@ Clicking the notification will also copy the translation, making it easy to copy
 ### 2. Cloze Card Creation (-c)
 To create a flashcard, highlight the target word/sentence and trigger the `wordflow --cloze` command. Wordflow will automatically build the card and push it to Anki.
 ### Other
-use `wordflow --help` to list all functionnalities
+use `wordflow --help` to list all functionalities
 
 ## Creating Shortcuts
 This tool really shines if you bind shortcuts to call it. Then you can seamlessly translate and create flashcards from any text without needing to open other windows.
