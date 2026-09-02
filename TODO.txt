@@ -1,7 +1,4 @@
-- add audio
 - add basic workflow
-- add manual
-- add click on notification to copy translation to clipboard
 - group multiple languages as 1 override. Ex: af|nl
 - make each translator work, by adapting language codes 
 # "MyMemoryTranslator",
