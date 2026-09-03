@@ -1,3 +1,4 @@
+import time
 import deep_translator
 from langdetect import detect, DetectorFactory
 from langdetect.lang_detect_exception import LangDetectException
@@ -99,50 +100,63 @@ def translate(
         anki_source = source_language
         api_source = source_language
 
+    if translator_name in API_KEY_TRANSLATORS and not api_key:
+        raise TranslationError(
+            f"'{translator_name}' requires an API key, but none is set in your config."
+        )
+
+    # formatting for the translator
+    api_source_formatted = adapt_lang_code(api_source, translator_name)
+    api_target_formatted = adapt_lang_code(target_language, translator_name)
     # DEBUG
-    print("detected language: ", anki_source)
+    # print("api source formatted: ", api_source_formatted)
+    init_args = {"source": api_source_formatted, "target": api_target_formatted}
+
+    if api_key:
+        init_args["api_key"] = api_key
+    if api_base_url:
+        init_args["base_url"] = api_base_url
+        init_args["api_base_url"] = api_base_url
+    if engine_model:
+        init_args["model"] = engine_model
+        init_args["engine_model"] = engine_model
+
+    # filter arguments to match what the specific translator class accepts
     try:
-        if translator_name in API_KEY_TRANSLATORS and not api_key:
-            raise TranslationError(
-                f"'{translator_name}' requires an API key, but none is set in your config."
-            )
-
-        # formatting for the translator
-        api_source_formatted = adapt_lang_code(api_source, translator_name)
-        api_target_formatted = adapt_lang_code(target_language, translator_name)
-        # DEBUG
-        print("api source formatted: ", api_source_formatted)
-        init_args = {"source": api_source_formatted, "target": api_target_formatted}
-
-        if api_key:
-            init_args["api_key"] = api_key
-        if api_base_url:
-            init_args["base_url"] = api_base_url
-            init_args["api_base_url"] = api_base_url
-        if engine_model:
-            init_args["model"] = engine_model
-            init_args["engine_model"] = engine_model
-
-        # filter arguments to match what the specific translator class accepts
-        try:
-            sig = inspect.signature(TranslatorClass.__init__)
-            has_var_keyword = any(
-                p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-            )
-            if not has_var_keyword:
-                init_args = {k: v for k, v in init_args.items() if k in sig.parameters}
-        except (ValueError, TypeError):
-            pass
-
+        sig = inspect.signature(TranslatorClass.__init__)
+        has_var_keyword = any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+        )
+        if not has_var_keyword:
+            init_args = {k: v for k, v in init_args.items() if k in sig.parameters}
+    except (ValueError, TypeError):
+        pass
+    try:
         translator_instance = TranslatorClass(**init_args)
-
-        translated_text = translator_instance.translate(text_to_translate)
-        if not translated_text:
-            raise TranslationError("The translation API returned an empty response.")
-
-        return translated_text, anki_source
-
+        # Loop to try to get a translation
+        translated_text = safe_translate_loop(translator_instance, text_to_translate)
     except Exception as e:
-        if isinstance(e, TranslationError):
-            raise e
-        raise TranslationError(f"Failed to translate using {translator_name}: {str(e)}")
+        raise TranslationError(
+            f"Failed to translate using {translator_name}: {str(e)}"
+        ) from e
+
+    return translated_text, anki_source
+
+
+def safe_translate_loop(translator, text: str, max_iter: int = 5, delay: float = 0.5):
+    """loops the api calls to attempt overcoming server errors"""
+    for attempt in range(max_iter):
+        try:
+            translated_text = translator.translate(text)
+            if not translated_text:
+                raise TranslationError("the translation API returned an empty string")
+            return translated_text
+
+        except Exception as e:
+            if attempt < max_iter - 1:
+                # progressive delay (backoff)
+                time.sleep(delay * attempt + 1)
+            else:
+                raise TranslationError(
+                    f"Translation failed after {max_iter} attempts. {e}"
+                )

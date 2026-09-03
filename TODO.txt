@@ -1,5 +1,5 @@
-- add basic workflow
-- group multiple languages as 1 override. Ex: af|nl
+- add basic and reverse basic workflow
+- add cloze cancel shortcut?
 - make each translator work, by adapting language codes 
 # "MyMemoryTranslator",
 # "LingueeTranslator",
