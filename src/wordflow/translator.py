@@ -132,9 +132,10 @@ def translate(
     except (ValueError, TypeError):
         pass
     try:
-        translator_instance = TranslatorClass(**init_args)
         # Loop to try to get a translation
-        translated_text = safe_translate_loop(translator_instance, text_to_translate)
+        translated_text = safe_translate_loop(
+            TranslatorClass, init_args, text_to_translate
+        )
     except Exception as e:
         raise TranslationError(
             f"Failed to translate using {translator_name}: {str(e)}"
@@ -143,13 +144,33 @@ def translate(
     return translated_text, anki_source
 
 
-def safe_translate_loop(translator, text: str, max_iter: int = 5, delay: float = 0.5):
+def safe_translate_loop(
+    TranslatorClass, init_args: dict, text: str, max_iter: int = 5, delay: float = 0.5
+):
     """loops the api calls to attempt overcoming server errors"""
+
+    # Red-flag phrases that indicate the API returned a scraped error page instead of a translation
+    fake_success_markers = [
+        "500 (server error)",
+        "502 (bad gateway)",
+        "403 (forbidden)",
+        "cloudflare",
+        "<html",
+    ]
     for attempt in range(max_iter):
         try:
+            # since __init__ can throw errors, we initiate translator here
+            translator = TranslatorClass(**init_args)
             translated_text = translator.translate(text)
             if not translated_text:
-                raise TranslationError("the translation API returned an empty string")
+                raise TranslationError("the translation API returned an empty string.")
+
+            lower_text = translated_text.lower()
+            if any(marker in lower_text for marker in fake_success_markers):
+                raise TranslationError(
+                    f"Fake success detected (API returned an error page): {translated_text}"
+                )
+
             return translated_text
 
         except Exception as e:
