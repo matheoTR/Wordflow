@@ -1,13 +1,10 @@
-# Handles the JSON formatting and AnkiConnect requests
-# creates payload
-#
-import base64
 import time
-from gtts import gTTS
 import requests
 import re
-from .my_classes import AnkiConfig
 import urllib.parse
+
+from .text_to_speech import get_audio
+from .my_classes import AnkiConfig, TranslationData
 
 
 class AnkiConnectError(Exception):
@@ -111,17 +108,10 @@ def is_duplicate_note(url: str, note: dict) -> bool:
 
 
 def make_cloze(
-    original_sentence: str,
-    translated_sentence: str,
-    original_word: str,
-    translated_word: str,
-    anki_config: AnkiConfig,
-    source_language: str,
-    target_language: str,
+    anki_config: AnkiConfig, sentence_data: TranslationData, word_data: TranslationData
 ):
     """
     makes a cloze flashcard and sends it to anki through AnkiConnect
-    based on language and packet
     """
     # check environment (create card type and deck if non-existing)
     # DEBUG:
@@ -131,21 +121,21 @@ def make_cloze(
     invoke(anki_config.url, "createDeck", deck=anki_config.deck)
 
     # clean trailing spaces
-    clean_sentence = original_sentence.strip()
-    clean_word = original_word.strip()
-    clean_translated_word = translated_word.strip()
+    source_sentence = sentence_data.source_data.strip()
+    source_word = word_data.source_data.strip()
+    translated_word = word_data.translated_data.strip()
 
     # CARD FIELDS
-    cloze_tag = f"{{{{c1::{clean_word}::{clean_translated_word}}}}}"
+    cloze_tag = f"{{{{c1::{source_word}::{translated_word}}}}}"
 
     # add dictionnary hyperlink
     if anki_config.dict_url:
         # url encode the word
-        safe_word = urllib.parse.quote(clean_word)
+        safe_word = urllib.parse.quote(source_word)
         final_url = anki_config.dict_url.format(
             word=safe_word,
-            source_language=source_language,
-            target_language=target_language,
+            source_language=word_data.source_language,
+            target_language=word_data.target_language,
         )
         cloze_field = f'<a href="{final_url}">{cloze_tag}</a>'
     else:
@@ -154,37 +144,44 @@ def make_cloze(
     # DEBUG
     # print(cloze_field)
     # case-insensitive replacement
-    pattern = re.compile(re.escape(clean_word), re.IGNORECASE)
-    front_field = pattern.sub(cloze_field, clean_sentence)
+    pattern = re.compile(re.escape(source_word), re.IGNORECASE)
+    front_field = pattern.sub(cloze_field, source_sentence)
 
     # Cloze card health check
     if "{{c1::" not in front_field:
         raise ValueError(
-            f"Could not find the word '{clean_word}' inside the sentence. Cloze creation failed."
+            f"Could not find the word '{source_word}' inside the sentence. Cloze creation failed."
         )
 
     # add optional audio
-    audio_tag = ""
-    if anki_config.audio_mode == "word":
-        audio_tag = add_audio_to_anki(
+    word_audio_tag = ""
+    sentence_audio_tag = ""
+    if anki_config.audio_mode in ["word", "both"]:
+        word_audio_tag = add_audio_to_anki(
             url=anki_config.url,
-            text=original_word,
-            lang_code=source_language,
+            text=source_word,
+            lang_code=word_data.source_language,
             accent=anki_config.audio_accent,
         )
-    elif anki_config.audio_mode == "sentence":
-        audio_tag = add_audio_to_anki(
+    if anki_config.audio_mode in ["sentence", "both"]:
+        sentence_audio_tag = add_audio_to_anki(
             url=anki_config.url,
-            text=original_sentence,
-            lang_code=source_language,
+            text=source_sentence,
+            lang_code=word_data.source_language,
             accent=anki_config.audio_accent,
         )
 
     # Create a populate field dictionnary.
     # if user has extra custom fields, they are left blank (but will be passed to ankiconnect)
-    back_field_content = translated_sentence
-    if audio_tag:
-        back_field_content += f"<br><br>{audio_tag}"
+    back_field_content = sentence_data.translated_data
+    if word_audio_tag or sentence_audio_tag:
+        back_field_content += "<br><br>"
+    if word_audio_tag:
+        back_field_content += f"<b>Word:</b> {word_audio_tag} "
+    if sentence_audio_tag:
+        if word_audio_tag:
+            back_field_content += "&nbsp;&nbsp;"  # adds | separator
+        back_field_content += f"<b>Sentence:<b>{sentence_audio_tag} "
 
     fields_dict = {field: "" for field in anki_config.field_names}
     fields_dict[anki_config.field_names[0]] = front_field  # front
@@ -199,7 +196,7 @@ def make_cloze(
     }
     # check for duplicate
     if is_duplicate_note(anki_config.url, note) and not anki_config.allow_duplicates:
-        raise DuplicateNoteError(f"a note for '{clean_word}' already exists")
+        raise DuplicateNoteError(f"a note for '{source_word}' already exists")
 
     invoke(anki_config.url, "addNote", note=note)
     return True
@@ -208,22 +205,14 @@ def make_cloze(
 def add_audio_to_anki(url: str, text: str, lang_code: str, accent: str):
     """uses text-to-speech to create an audio of the given text and returns the [sound:...] tag."""
     # generate unique name for the tag
-    filename = f"wordflow_{int(time.time())}.mp3"
-    filepath = f"/tmp/{filename}"
-
-    # language code quirks. I will add more and I find them
-    gtts_lang = "zh-CN" if lang_code.lower() == "zh-cn" else lang_code
+    filename = f"wordflow_{int(time.time_ns())}.mp3"
 
     # generate audio
-    tts = gTTS(text=text, lang=gtts_lang, tld=accent)
-    tts.save(filepath)
+    audio = get_audio(text=text, language=lang_code, accent=accent)
 
-    # Read the MP3 and encode it to Base64
-    with open(filepath, "rb") as f:
-        audio_b64 = base64.b64encode(f.read()).decode("utf-8")
-
-    payload = {"filename": filename, "data": audio_b64}
-
+    # send anki request
+    payload = {"filename": filename, "data": audio}
     invoke(url=url, action="storeMediaFile", **payload)
 
+    # return audio tag
     return f"[sound:{filename}]"

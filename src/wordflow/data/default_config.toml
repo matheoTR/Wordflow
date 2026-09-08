@@ -4,29 +4,13 @@
 # ==============================================================================
 # ------------------------------------------------------------------------------
 [global]
-# ISO 639-1 language codes (e.g., "en", "zh-cn", "nl", "fr", "es")
+# ISO 639-1 language codes (e.g., "en", "nl", "fr", "es")
+# only exception is chinese: you can choose between zh-cn and zh-tw for simplified or traditional translation
 # full list at: https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
 source_language = "auto" # translate from
 target_language = "en" # translate to
 
 enable_notifications = true # Send system notifications
-
-[translator]
-# Supported engines: 
-# "GoogleTranslator",
-translator_name = "GoogleTranslator"
-
-# Required for paid/authenticated APIs (DeepL, OpenAI, etc.)
-# leave blank if you don't need it
-api_key = ""
-
-# Base URL for self-hosted instances
-# leave blank if you don't need it
-api_base_url = ""
-
-# Engine-specific model selection
-# leave blank if you don't need it
-engine_model = ""
 
 # ------------------------------------------------------------------------------
 # DEFAULT ANKI CONFIGURATION

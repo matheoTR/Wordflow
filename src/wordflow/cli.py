@@ -129,7 +129,7 @@ def main():
             translate_workflow(global_config, translator_config)
 
         elif args.cloze:
-            cloze_workflow(global_config, translator_config, raw_anki_data)
+            cloze_workflow(global_config, raw_anki_data)
 
     except KeyboardInterrupt:
         notify(

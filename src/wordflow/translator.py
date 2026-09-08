@@ -1,9 +1,7 @@
-import time
-import deep_translator
-from langdetect import detect, DetectorFactory
-from langdetect.lang_detect_exception import LangDetectException
-import inspect
-from .constants import SUPPORTED_TRANSLATORS, FREE_TRANSLATORS, API_KEY_TRANSLATORS
+import requests
+from time import sleep
+
+from wordflow.my_classes import TranslationData
 
 
 class TranslationError(Exception):
@@ -12,172 +10,161 @@ class TranslationError(Exception):
     pass
 
 
-DetectorFactory.seed = 0
+def normalize_lang_code(google_code: str) -> str:
+    """Converts Google's legacy or dialect-specific codes into ISO 639-1."""
+    if not google_code:
+        return ""
 
+    code = google_code.lower()
 
-def adapt_lang_code(lang_code: str, translator_name: str) -> str:
-    """
-    Adapts standard ISO codes to engine-specific formats.
-    """
-    code = lang_code.lower()
-
-    # 1. Exact string overrides for specific language + engine pairings
-    exceptions = {
-        "zh-cn": {
-            "GoogleTranslator": "zh-CN",
-            "MyMemoryTranslator": "zh-CN",
-            "DeeplTranslator": "ZH",
-        },
-        "zh-tw": {
-            "GoogleTranslator": "zh-TW",
-            "MyMemoryTranslator": "zh-TW",
-            "DeeplTranslator": "ZH",
-        },
-        "yue": {
-            "GoogleTranslator": "zh-TW",
-            "MyMemoryTranslator": "zh-TW",
-        },
-        "en": {
-            "DeeplTranslator": "EN-US",
-        },
-        "pt": {
-            "DeeplTranslator": "PT-PT",
-        },
+    legacy_map = {
+        "iw": "he",  # Hebrew
+        "in": "id",  # Indonesian
+        "jw": "jv",  # Javanese
+        "ji": "yi",  # Yiddish
     }
+    if code in legacy_map:
+        return legacy_map[code]
 
-    # Resolve mapping if an exception exists
-    # 95% of languages work as is and will skip this
-    if code in exceptions and translator_name in exceptions[code]:
-        adapted_code = exceptions[code][translator_name]
-    else:
-        adapted_code = code
+    if code in ["zh-cn", "zh-tw"]:
+        return code
 
-    # Engine-wide formatting quirks
-    if translator_name == "DeeplTranslator":
-        return adapted_code.upper()
+    # 2. Strip regional subtags (e.g., 'zh-cn' -> 'zh', 'en-us' -> 'en')
+    if "-" in code:
+        code = code.split("-")[0]
 
-    return adapted_code
+    return code
 
 
 def translate(
-    original_text: str,
+    text: str,
     source_language: str = "auto",
     target_language: str = "en",
-    translator_name: str = "GoogleTranslator",
-    api_key: str = "",
-    api_base_url: str = "",
-    engine_model: str = "",
-):
+    max_retries: int = 3,
+) -> TranslationData:
     """
-    Takes text in any language and translates it into target_language,
-    supporting optional API keys, base URLs, and engine models.
-    Returns : translated text, detected source language
+    Takes text in any language and translates it into target_language.
+    Returns a dictionnary containing the translation, source language used, and additional info in case of singe word translation: pronounciation, alternate translations, definition, synonyms, examples
     """
-    text_to_translate = original_text.strip()
+    text_to_translate = text.strip()
     if not text_to_translate:
         raise TranslationError("No text was provided for translation.")
 
-    if translator_name not in SUPPORTED_TRANSLATORS:
-        raise TranslationError(
-            f"Translator '{translator_name}' is not supported. "
-            f"Supported engines: {', '.join(SUPPORTED_TRANSLATORS)}"
-        )
+    url = "https://translate.googleapis.com/translate_a/single"
+    params = {
+        "client": "gtx",  # The magical bypass client
+        "sl": source_language,  # (auto is supported)
+        "tl": target_language,
+        "q": text,  # The text to translate
+        "dt": [
+            "t",
+            "bd",
+            "rm",
+            "md",
+            "ss",
+            "ex",
+        ],  # Request the "translation", pronounciation, alternate translations, definition, synonyms, and examples
+    }
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
-    TranslatorClass = getattr(deep_translator, translator_name)
+    last_error = None
 
-    # resolve source language for anki
-    if source_language == "auto":
+    for _ in range(max_retries):
         try:
-            anki_source = detect(text_to_translate)
-            # --- Afrikaans/Dutch Overlap Fix ---
-            if anki_source == "af":
-                anki_source = "nl"
-        except LangDetectException:
-            # Fallback
-            anki_source = "unknown"
-        api_source = "auto"
-    else:
-        anki_source = source_language
-        api_source = source_language
-
-    if translator_name in API_KEY_TRANSLATORS and not api_key:
-        raise TranslationError(
-            f"'{translator_name}' requires an API key, but none is set in your config."
-        )
-
-    # formatting for the translator
-    api_source_formatted = adapt_lang_code(api_source, translator_name)
-    api_target_formatted = adapt_lang_code(target_language, translator_name)
-    # DEBUG
-    # print("api source formatted: ", api_source_formatted)
-    init_args = {"source": api_source_formatted, "target": api_target_formatted}
-
-    if api_key:
-        init_args["api_key"] = api_key
-    if api_base_url:
-        init_args["base_url"] = api_base_url
-        init_args["api_base_url"] = api_base_url
-    if engine_model:
-        init_args["model"] = engine_model
-        init_args["engine_model"] = engine_model
-
-    # filter arguments to match what the specific translator class accepts
-    try:
-        sig = inspect.signature(TranslatorClass.__init__)
-        has_var_keyword = any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-        )
-        if not has_var_keyword:
-            init_args = {k: v for k, v in init_args.items() if k in sig.parameters}
-    except (ValueError, TypeError):
-        pass
-    try:
-        # Loop to try to get a translation
-        translated_text = safe_translate_loop(
-            TranslatorClass, init_args, text_to_translate
-        )
-    except Exception as e:
-        raise TranslationError(
-            f"Failed to translate using {translator_name}: {str(e)}"
-        ) from e
-
-    return translated_text, anki_source
-
-
-def safe_translate_loop(
-    TranslatorClass, init_args: dict, text: str, max_iter: int = 5, delay: float = 0.5
-):
-    """loops the api calls to attempt overcoming server errors"""
-
-    # Red-flag phrases that indicate the API returned a scraped error page instead of a translation
-    fake_success_markers = [
-        "500 (server error)",
-        "502 (bad gateway)",
-        "403 (forbidden)",
-        "cloudflare",
-        "<html",
-    ]
-    for attempt in range(max_iter):
-        try:
-            # since __init__ can throw errors, we initiate translator here
-            translator = TranslatorClass(**init_args)
-            translated_text = translator.translate(text)
-            if not translated_text:
-                raise TranslationError("the translation API returned an empty string.")
-
-            lower_text = translated_text.lower()
-            if any(marker in lower_text for marker in fake_success_markers):
+            response = requests.get(url, params=params, headers=headers, timeout=5)
+            # FAIL FAST: If Google rate-limits, abort instantly to avoid extending the ban.
+            if response.status_code == 429:
                 raise TranslationError(
-                    f"Fake success detected (API returned an error page): {translated_text}"
+                    "Google temporarily rate-limited your IP (HTTP 429). Please wait a few minutes."
                 )
+            # other errors
+            response.raise_for_status()
 
-            return translated_text
+            data = parse_translation_data(response.json())
+            translation_data = TranslationData(
+                source_data=text,
+                translated_data=data["translation"],
+                source_language=data["source_language"],
+                target_language=target_language,
+                pronounciation=data.get("pronounciation"),
+                alternate_translations=data.get("alternates", ""),
+                synonyms=data.get("synonyms"),
+                definitions=data.get("definitions"),
+                examples=data.get("examples"),
+            )
+            # DEBUG
+            print("json data: ", response.json())
+            print(translation_data)
+            return translation_data
 
-        except Exception as e:
-            if attempt < max_iter - 1:
-                # progressive delay (backoff)
-                time.sleep(delay * attempt + 1)
-            else:
-                raise TranslationError(
-                    f"Translation failed after {max_iter} attempts. {e}"
-                )
+        except requests.RequestException as e:
+            last_error = e
+            sleep(1)  # wait ane retry
+
+    raise TranslationError(f"Failed to translate. Last error: {last_error}")
+
+
+def parse_translation_data(data) -> dict:
+    # parse TRANSLATION
+    translation = "".join([sentence[0] for sentence in data[0] if sentence[0]])
+    # parse PRONOUNCIATION
+    pronunciation = ""
+    for item in data[0]:
+        # Romanizations are placed in the 3rd index of a specific sub-array
+        if len(item) > 3 and item[3]:
+            pronunciation = item[3]
+            break
+    # 3. parse DICTIONARY (Alternate translations)
+    # data[1] exists if it's a single word and dt=bd was requested
+    alternates = []
+    if len(data) > 1 and data[1]:
+        for pos_group in data[1]:
+            # pos_group[0] is the part of speech (e.g., "noun")
+            # pos_group[1] is a list of translated words
+            if len(pos_group) > 1:
+                alternates.extend(pos_group[1])
+    # SOURCE LANGUAGE
+    detected_source_language = data[2]
+    iso_source_language = normalize_lang_code(detected_source_language)
+
+    definitions = []
+    synonyms = []
+    examples = []
+    # 4. parse SYNONYMS
+    ## Located at data[11]. Structure: [ ["noun", [ [ ["syn1", "syn2"], "id" ] ] ], ... ]
+    if len(data) > 11 and data[11]:
+        for pos_group in data[11]:
+            if len(pos_group) > 1 and isinstance(pos_group[1], list):
+                for entry in pos_group[1]:
+                    if (
+                        isinstance(entry, list)
+                        and len(entry) > 0
+                        and isinstance(entry[0], list)
+                    ):
+                        synonyms.extend(entry[0])
+
+    # 5. parse DEFINITIONS
+    # Located at data[12]. Structure: [ ["noun", [ ["definition1", "id", "example"], ... ] ], ... ]
+    if len(data) > 12 and data[12]:
+        for pos_group in data[12]:
+            if len(pos_group) > 1 and isinstance(pos_group[1], list):
+                for entry in pos_group[1]:
+                    if isinstance(entry, list) and len(entry) > 0:
+                        definitions.append(entry[0])
+
+    # 6. parse EXAMPLES
+    # Located at data[13]. Structure: [ [ ["example 1 with <b>tags</b>", ...], ... ] ]
+    if len(data) > 13 and data[13]:
+        if isinstance(data[13], list) and len(data[13]) > 0:
+            for ex_group in data[13][0]:
+                if isinstance(ex_group, list) and len(ex_group) > 0:
+                    examples.append(str(ex_group[0]))
+    return {
+        "translation": translation,
+        "pronounciation": pronunciation,
+        "alternates": list(set(alternates)),
+        "definitions": definitions,
+        "synonyms": list(set(synonyms)),
+        "examples": examples,
+        "source_language": iso_source_language,
+    }

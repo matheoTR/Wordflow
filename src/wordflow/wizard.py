@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 from importlib.resources import files
 
-from .constants import SUPPORTED_TRANSLATORS
-
 
 def _prompt(text: str, default: str) -> str:
     """Helper to prompt for a string with a fallback default."""
@@ -95,21 +93,6 @@ def launch_wizard() -> dict:
     enable_notifs = _prompt_bool("Enable desktop notifications?", True)
     print()
 
-    # --- TRANSLATOR ---
-    print("--- 2. Translator Settings ---")
-    translator_name = _prompt_numbered_choice(
-        "Choose your translator engine",
-        choices=SUPPORTED_TRANSLATORS,
-        default="GoogleTranslator",
-    )
-
-    api_key = ""
-    if translator_name not in ("GoogleTranslator", "MyMemoryTranslator"):
-        api_key = input(
-            f"Enter API Key for {translator_name} (leave blank if not needed): "
-        ).strip()
-    print()
-
     # --- ANKI ---
     print("--- 3. Anki Settings ---")
     print("Make sure Anki is open with AnkiConnect installed.")
@@ -157,8 +140,6 @@ def launch_wizard() -> dict:
             "enable_notifications": enable_notifs,
         },
         "translator": {
-            "translator_name": translator_name,
-            "api_key": api_key,
             "api_base_url": "",
             "engine_model": "",
         },

@@ -27,3 +27,16 @@ class GlobalConfig:
     source_language: str
     target_language: str
     enable_notifications: bool = True
+
+
+@dataclass
+class TranslationData:
+    source_data: str
+    translated_data: str
+    source_language: str
+    target_language: str
+    pronounciation: str | None
+    alternate_translations: str | None
+    synonyms: list[str] | None
+    definitions: list[str] | None
+    examples: list[str] | None
