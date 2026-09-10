@@ -86,7 +86,7 @@ def translate(
                 translated_data=data["translation"],
                 source_language=data["source_language"],
                 target_language=target_language,
-                pronounciation=data.get("pronounciation"),
+                phonetic=data.get("phonetic"),
                 alternate_translations=data.get("alternates", ""),
                 synonyms=data.get("synonyms"),
                 definitions=data.get("definitions"),
@@ -107,12 +107,12 @@ def translate(
 def parse_translation_data(data) -> dict:
     # parse TRANSLATION
     translation = "".join([sentence[0] for sentence in data[0] if sentence[0]])
-    # parse PRONOUNCIATION
-    pronunciation = ""
+    # parse PHONETIC
+    phonetic = ""
     for item in data[0]:
         # Romanizations are placed in the 3rd index of a specific sub-array
         if len(item) > 3 and item[3]:
-            pronunciation = item[3]
+            phonetic = item[3]
             break
     # 3. parse DICTIONARY (Alternate translations)
     # data[1] exists if it's a single word and dt=bd was requested
@@ -161,7 +161,7 @@ def parse_translation_data(data) -> dict:
                     examples.append(str(ex_group[0]))
     return {
         "translation": translation,
-        "pronounciation": pronunciation,
+        "phonetic": phonetic,
         "alternates": list(set(alternates)),
         "definitions": definitions,
         "synonyms": list(set(synonyms)),

@@ -30,7 +30,7 @@ deck = "Languages::{source_language}"
 card_model = "wordflow cloze"
 
 # Map your personal field names 
-field_names = ["front", "translation", "additional notes"]
+#field_names = ["front", "translation", "additional notes"]
 
 # Allow duplicate cards if the same word/cloze already exists in the deck?
 allow_duplicates = false
@@ -38,31 +38,66 @@ allow_duplicates = false
 # Default tags automatically attached to every card added by wordflow
 tags = ["wordflow", "auto-generated"]
 
-# Audio mode: choose between none|word|sentence. It will create an automatic audio recording of the selection using gTTS
+# Audio: choose between none|word|sentence|both.
+# Adds automatic audio recordings of the selection
 audio_mode = "sentence"
 # Dictionnary url
-# uncomment this if you want to add automatic dictionnary hyperlinks in your cloze cards
-# you can change it to any url with a predictable url scheme. 
+# if a dict_url scheme is specified, it will add a hyperlink to the cloze field
 # dynamic placeholders are: {source_language} {target_language} {word}
 # examples:
 # dict_url=https://context.reverso.net/translation/{source_language}-{target_language}/{word}
 # dict_url=https://en.wiktionary.org/wiki/{word}
 dict_url = "https://glosbe.com/{source_language}/{target_language}/{word}"
 
+# feel free to tweak those values if you use these fields
+max_alternates = 3
+max_definitions = 2
+max_synonyms = 2
+max_examples = 1
+# ------------------------------------------------------------------------------
+# FIELD MAPPINGS
+# ------------------------------------------------------------------------------
+# Map your personal Anki field names (left) to Wordflow data placeholders (right).
+# You can combine multiple placeholders and use HTML tags like <br> or <b>.
+# missing fields are automatically left blank
+#
+# Available placeholders:
+# {cloze}         - The sentence with the {{c1::word}} deletion
+# {translation}   - The translation of the full sentence
+# {source_word}          - The isolated highlighted word
+# {word_audio}
+# {sentence_audio}
+# {sentence_phonetic} - Pinyin / Romaji / Phonetics (if available)
+# {word_phonetic} - Pinyin / Romaji / Phonetics (if available)
+# {alternates}    - Alternative translations of the word (if available)
+# {definitions}   - Dictionary definitions of the word  (if available)
+# {synonyms}      - Synonyms (if available)
+# {examples}      - Example sentences containing the word (if available)
+[anki.default.fields]
+"front" = "{cloze}"
+"translation" = "{translation}<br><br>{word_audio}<br>{sentence_audio}"
+"word" = "{source_word}"
+"sentence_phonetic" = "{sentence_phonetic}"
+"word_phonetic" = "{word_phonetic}"
+"alternates" = "{alternates}"
+"definitions" = "{definitions}"
+"synonyms" = "{synonyms}"
+"examples" = "{examples}"
 # ------------------------------------------------------------------------------
 # LANGUAGE-SPECIFIC OVERRIDES
-# Triggered when passing -l/--lang <language_iso_code>
+# Triggered when the source language is detected, or when passing -l/--lang <language_iso_code>
+# use it to change the deck, card model, fields, etc. dynamically based on detected language
 # ------------------------------------------------------------------------------
 
 # Override for Chinese (-l zh-cn)
 [anki.zh-cn]
 deck = "Languages::Chinese"
 card_model = "Chinese Hanzi Cloze"
-field_names = ["Hanzi", "Translation", "Stroke_Order"]
+# field_names = ["Hanzi", "Translation", "Stroke_Order"]
 
 # Override for Dutch (-l nl)
 [anki.nl]
-deck = "Languages::Dutch"
+deck = "Languages::Nederlands"
 
 [anki.es]
 # experimental: change the accent by changing the top-level domain of the tts request. Please refer to https://gtts.readthedocs.io/en/latest/module.html#localized-accents for more info

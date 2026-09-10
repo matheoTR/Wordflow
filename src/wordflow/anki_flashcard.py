@@ -7,6 +7,10 @@ from .text_to_speech import get_audio
 from .my_classes import AnkiConfig, TranslationData
 
 
+class AnkiConfigError(Exception):
+    """Raised if there is an error in the anki configuration"""
+
+
 class AnkiConnectError(Exception):
     """raised if failure to connect to Anki through AnkiConnect"""
 
@@ -35,18 +39,31 @@ def invoke(url: str, action: str, **params):
         raise AnkiConnectError(f"Could not reach Anki. Is it open? ({e})")
 
 
-def setup_anki_model(url: str, model_name: str, field_names: list[str]):
+def setup_anki_model(url: str, model_name: str, fields: dict):
     """
-    Checks if the required Cloze model exists. If not, it creates it
-    with the exact fields and dark-mode styling needed.
+    Checks if the required Cloze model exists.
+    If it does exist, it verifies the fields match to prevent silent crashes.
+    If not, it creates it.
     """
-    if not field_names:
-        raise ValueError("field_names must contain at least one field for the cloze.")
+    if not fields:
+        raise ValueError("fields must contain at least one field.")
 
     existing_models = invoke(url, "modelNames")
-    # DEBUG
-    # print(existing_models)
-    # print(f"Is '{model_name}' in Anki? -> {model_name in existing_models}\n")
+    field_names = list(fields.keys())
+
+    if model_name in existing_models:
+        existing_fields = invoke(url, "modelFieldNames", modelName=model_name)
+
+        # debug
+        print(f"Anki expects : {existing_fields}\nConfig sends : {field_names}\n")
+
+        if existing_fields != field_names:
+            raise AnkiConfigError(
+                f"\nFATAL: The Anki model '{model_name}' already exists, but its fields do not match your config.toml.\n"
+                f"Anki expects : {existing_fields}\n"
+                f"Config sends : {fields}\n"
+            )
+        return
 
     # if wordflow cloze model does not exist, we create it
     if model_name not in existing_models:
@@ -55,31 +72,23 @@ def setup_anki_model(url: str, model_name: str, field_names: list[str]):
         .cloze { font-weight: bold; color: #ffb86c; }
         #answer { border-top: 1px solid #6272a4; margin-top: 15px; padding-top: 15px; }
         """
-        # front
-        front_anki = f"{{{{cloze:{field_names[0]}}}}}"
+        # front. Works since keys are kept in order in python dict
+        front_anki = "{{cloze:" + field_names[0] + "}}"
 
         # back
         back_anki_parts = [f'{front_anki}<div id="answer">']
         for field in field_names[1:]:
             # Using Anki conditional rendering
             # This ensures no whitespace is added if the field is left blank.
-            back_anki_parts.append(
-                f"{{{{#{field}}}}}<br><br>{{{{{{{field}}}}}}}{{{{/{field}}}}}"
+            conditional_render = (
+                "{{#" + field + "}}<br><br>{{" + field + "}}{{/" + field + "}}"
             )
+            back_anki_parts.append(conditional_render)
+
         back_anki_parts.append("</div>")
-        # we join all parts
         back_anki = "".join(back_anki_parts)
 
-        # DEBUG
-        # print("front: ", front_anki)
-        # print("trans: ", back_anki)
-        # print("notes: ", extra_anki)
-        # print("css: ", css)
-        # print("front_field_name: ", front_field_name)
-        # print("translation_field_name: ", back_field_name)
-        # print("additionnal_info_field_name: ", extra_field_name)
-
-        res = invoke(
+        invoke(
             url,
             "createModel",
             modelName=model_name,
@@ -94,17 +103,6 @@ def setup_anki_model(url: str, model_name: str, field_names: list[str]):
                 }
             ],
         )
-        # DEBUG
-        # print(res)
-
-
-def is_duplicate_note(url: str, note: dict) -> bool:
-    """
-    Returns True if the note already exists.
-    """
-    results = invoke(url, "canAddNotes", notes=[note])
-    # results is a list of booleans matching the input list
-    return not results[0] if results else False
 
 
 def make_cloze(
@@ -113,92 +111,38 @@ def make_cloze(
     """
     makes a cloze flashcard and sends it to anki through AnkiConnect
     """
+    # before doing anything, checks that the word is in the sentence
+    if word_data.source_data.lower() not in sentence_data.source_data.lower():
+        raise ValueError(
+            f"Could not find the word '{word_data.source_data}' inside the sentence. Cloze creation failed."
+        )
+
     # check environment (create card type and deck if non-existing)
-    # DEBUG:
-    # print("Model name: ", anki_config.card_model)
-    setup_anki_model(anki_config.url, anki_config.card_model, anki_config.field_names)
+    setup_anki_model(anki_config.url, anki_config.card_model, anki_config.fields)
+
     # make sure deck exists
     invoke(anki_config.url, "createDeck", deck=anki_config.deck)
 
-    # clean trailing spaces
-    source_sentence = sentence_data.source_data.strip()
-    source_word = word_data.source_data.strip()
-    translated_word = word_data.translated_data.strip()
-
-    # CARD FIELDS
-    cloze_tag = f"{{{{c1::{source_word}::{translated_word}}}}}"
-
-    # add dictionnary hyperlink
-    if anki_config.dict_url:
-        # url encode the word
-        safe_word = urllib.parse.quote(source_word)
-        final_url = anki_config.dict_url.format(
-            word=safe_word,
-            source_language=word_data.source_language,
-            target_language=word_data.target_language,
-        )
-        cloze_field = f'<a href="{final_url}">{cloze_tag}</a>'
-    else:
-        cloze_field = cloze_tag
-
-    # DEBUG
-    # print(cloze_field)
-    # case-insensitive replacement
-    pattern = re.compile(re.escape(source_word), re.IGNORECASE)
-    front_field = pattern.sub(cloze_field, source_sentence)
-
-    # Cloze card health check
-    if "{{c1::" not in front_field:
-        raise ValueError(
-            f"Could not find the word '{source_word}' inside the sentence. Cloze creation failed."
-        )
-
-    # add optional audio
-    word_audio_tag = ""
-    sentence_audio_tag = ""
-    if anki_config.audio_mode in ["word", "both"]:
-        word_audio_tag = add_audio_to_anki(
-            url=anki_config.url,
-            text=source_word,
-            lang_code=word_data.source_language,
-            accent=anki_config.audio_accent,
-        )
-    if anki_config.audio_mode in ["sentence", "both"]:
-        sentence_audio_tag = add_audio_to_anki(
-            url=anki_config.url,
-            text=source_sentence,
-            lang_code=word_data.source_language,
-            accent=anki_config.audio_accent,
-        )
-
-    # Create a populate field dictionnary.
-    # if user has extra custom fields, they are left blank (but will be passed to ankiconnect)
-    back_field_content = sentence_data.translated_data
-    if word_audio_tag or sentence_audio_tag:
-        back_field_content += "<br><br>"
-    if word_audio_tag:
-        back_field_content += f"<b>Word:</b> {word_audio_tag} "
-    if sentence_audio_tag:
-        if word_audio_tag:
-            back_field_content += "&nbsp;&nbsp;"  # adds | separator
-        back_field_content += f"<b>Sentence:<b>{sentence_audio_tag} "
-
-    fields_dict = {field: "" for field in anki_config.field_names}
-    fields_dict[anki_config.field_names[0]] = front_field  # front
-    fields_dict[anki_config.field_names[1]] = back_field_content  # back
+    # Make each field match required piece: should return a dict of fields:content
+    formatted_anki_fields = process_fields(anki_config, sentence_data, word_data)
 
     # create payload
     note = {
         "deckName": anki_config.deck,
         "modelName": anki_config.card_model,
-        "fields": fields_dict,
+        "fields": formatted_anki_fields,
         "tags": anki_config.tags,
+        "options": {"allowDuplicate": anki_config.allow_duplicates},
     }
-    # check for duplicate
-    if is_duplicate_note(anki_config.url, note) and not anki_config.allow_duplicates:
-        raise DuplicateNoteError(f"a note for '{source_word}' already exists")
 
-    invoke(anki_config.url, "addNote", note=note)
+    try:
+        invoke(anki_config.url, "addNote", note=note)
+    except AnkiConnectError as e:
+        if "duplicate" in str(e).lower():
+            raise DuplicateNoteError(
+                f"A note for '{word_data.source_data}' already exists."
+            )
+        raise e
     return True
 
 
@@ -216,3 +160,93 @@ def add_audio_to_anki(url: str, text: str, lang_code: str, accent: str):
 
     # return audio tag
     return f"[sound:{filename}]"
+
+
+def process_fields(anki_config, word_data, sentence_data) -> dict:
+    """
+    Builds the replacement dictionary, generating audio only if required,
+    and formats the user's custom Anki fields.
+    """
+
+    # 1. LAZY AUDIO
+    all_fields_template = "".join(anki_config.fields.values())
+
+    word_audio_instruction = ""
+    if "{word_audio}" in all_fields_template:
+        word_audio_instruction = add_audio_to_anki(
+            anki_config.url,
+            word_data.source_data,
+            word_data.source_language,
+            anki_config.audio_accent,
+        )
+
+    sentence_audio_instruction = ""
+    if "{sentence_audio}" in all_fields_template:
+        sentence_audio_instruction = add_audio_to_anki(
+            anki_config.url,
+            sentence_data.source_data,
+            sentence_data.source_language,
+            anki_config.audio_accent,
+        )
+
+    # 2. CLOZE GENERATION + optionnal dictionary url
+    if anki_config.dict_url:
+        safe_word = urllib.parse.quote(word_data.source_data)
+        final_url = anki_config.dict_url.format(
+            word=safe_word,
+            source_language=word_data.source_language,
+            target_language=word_data.target_language,
+        )
+        linked_word = f'<a href="{final_url}" style="text-decoration: none;">{word_data.source_data}</a>'
+        cloze_tag = "{{c1::" + linked_word + "::" + word_data.translated_data + "}}"
+    else:
+        cloze_tag = (
+            "{{c1::" + word_data.source_data + "::" + word_data.translated_data + "}}"
+        )
+
+    pattern = re.compile(re.escape(word_data.source_data), re.IGNORECASE)
+    cloze_instruction = pattern.sub(cloze_tag, sentence_data.source_data)
+
+    # 3. BUILD THE DICTIONARY
+    format_dict = {
+        "cloze": cloze_instruction,
+        "translation": sentence_data.translated_data,
+        "source_word": word_data.source_data,
+        "word_audio": word_audio_instruction,
+        "sentence_audio": sentence_audio_instruction,
+        "sentence_phonetic": getattr(sentence_data, "phonetic", ""),
+        "word_phonetic": getattr(word_data, "phonetic", ""),
+        "alternates": "<br>".join(
+            word_data.alternate_translations[: anki_config.max_alternates]
+        )
+        if word_data.alternate_translations
+        else "",
+        "definitions": "<br><br>".join(
+            word_data.definitions[: anki_config.max_definitions]
+        )
+        if word_data.definitions
+        else "",
+        "synonyms": ", ".join(word_data.synonyms[: anki_config.max_synonyms])
+        if getattr(word_data, "synonyms", None)
+        else "",
+        "examples": "<br><br>".join(word_data.examples[: anki_config.max_examples])
+        if getattr(word_data, "examples", None)
+        else "",
+    }
+
+    # 4. FORMAT FIELDS
+    formatted_anki_fields = {}
+
+    for field_name, field_template in anki_config.fields.items():
+        if not field_template:
+            formatted_anki_fields[field_name] = ""
+            continue
+
+        try:
+            formatted_anki_fields[field_name] = field_template.format(**format_dict)
+        except KeyError as e:
+            raise AnkiConfigError(
+                f"Warning: Unknown placeholder {e} in config field '{field_name}'"
+            )
+
+    return formatted_anki_fields

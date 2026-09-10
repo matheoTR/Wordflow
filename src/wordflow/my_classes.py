@@ -7,11 +7,15 @@ class AnkiConfig:
     deck: str
     card_model: str
     tags: list[str]
-    dict_url: str
+    dict_url: str | None
     allow_duplicates: bool
-    field_names: list[str]
+    fields: dict
     audio_mode: str = "none"
     audio_accent: str = "com"
+    max_synonyms: int = 3
+    max_alternates: int = 3
+    max_definitions: int = 2
+    max_examples: int = 1
 
 
 @dataclass
@@ -35,8 +39,8 @@ class TranslationData:
     translated_data: str
     source_language: str
     target_language: str
-    pronounciation: str | None
-    alternate_translations: str | None
+    phonetic: str | None
+    alternate_translations: list[str] | None
     synonyms: list[str] | None
     definitions: list[str] | None
     examples: list[str] | None

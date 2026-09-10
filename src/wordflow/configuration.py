@@ -68,7 +68,6 @@ def load_config(
     source_language_override: str | None = None,
     target_language_override: str | None = None,
     notify: bool | None = None,
-    translator: str | None = None,
 ):
     """
     reads user config or creates one if there is none
@@ -82,15 +81,6 @@ def load_config(
     try:
         with open(config_file, "rb") as f:
             config = tomllib.load(f)
-            # Making the Objects
-            translator_data = config.get("translator", {})
-            translator_config = TranslatorConfig(
-                translator=translator or translator_data.get("translator_name", ""),
-                api_key=translator_data.get("api_key", ""),
-                api_base_url=translator_data.get("api_base_url", ""),
-                engine_model=translator_data.get("engine_model", ""),
-            )
-            raw_anki_data = config.get("anki", {})
 
             global_data = config.get("global", {})
             global_config = GlobalConfig(
@@ -102,7 +92,9 @@ def load_config(
                 if notify is not None
                 else global_data.get("enable_notifications", True),
             )
-            return global_config, translator_config, raw_anki_data
+            raw_anki_data = config.get("anki", {})
+
+            return global_config, raw_anki_data
 
     except tomllib.TOMLDecodeError as e:
         # Catch syntax errors
@@ -123,30 +115,40 @@ def resolve_anki_config(
     """
 
     anki_defaults = raw_anki_data.get("default", {})
-    # anki_defaults_fields = anki_defaults.get("fields", {})
     anki_override = raw_anki_data.get(str(active_language), {})
-    # anki_override_fields = anki_override.get("fields", {})
 
-    # overrides if exists, otherwise falls back to default
+    anki_defaults_fields = anki_defaults.get("fields", {})
+    anki_override_fields = anki_override.get("fields", {})
+
     anki_config = AnkiConfig(
         url=anki_override.get("url", anki_defaults.get("url")),
-        deck=anki_override.get("deck", anki_defaults.get("deck")).replace(
-            "{source_language}", str(active_language)
-        ),
+        deck=anki_override.get(
+            "deck", anki_defaults.get("deck", "Wordflow::{source_language}")
+        ).replace("{source_language}", str(active_language)),
         card_model=anki_override.get("card_model", anki_defaults.get("card_model")),
         tags=anki_override.get("tags", anki_defaults.get("tags", "")),
         allow_duplicates=anki_override.get(
             "allow_duplicates", anki_defaults.get("allow_duplicates", False)
         ),
         dict_url=anki_override.get("dict_url", anki_defaults.get("dict_url", "")),
-        field_names=anki_override.get(
-            "field_names", anki_defaults.get("field_names", ["front", "back"])
-        ),
+        fields=anki_override_fields if anki_override_fields else anki_defaults_fields,
         audio_mode=anki_override.get(
             "audio_mode", anki_defaults.get("audio_mode", "none")
         ),
         audio_accent=anki_override.get(
             "audio_accent", anki_defaults.get("audio_accent", "com")
+        ),
+        max_synonyms=anki_override.get(
+            "max_synonyms", anki_defaults.get("max_synonyms")
+        ),
+        max_alternates=anki_override.get(
+            "max_alternates", anki_defaults.get("max_alternates")
+        ),
+        max_definitions=anki_override.get(
+            "max_definitions", anki_defaults.get("max_definitions")
+        ),
+        max_examples=anki_override.get(
+            "max_examples", anki_defaults.get("max_examples")
         ),
     )
     return anki_config

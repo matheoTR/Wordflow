@@ -6,9 +6,7 @@ from .my_classes import TranslationData, TranslatorConfig, AnkiConfig, GlobalCon
 from .configuration import resolve_anki_config
 
 
-def translate_workflow(
-    global_config: GlobalConfig, translator_config: TranslatorConfig
-):
+def translate_workflow(global_config: GlobalConfig):
     """translates a word or sentence and outputs it in a clickable notification"""
     try:
         # 1. Get text from primary or clipboad

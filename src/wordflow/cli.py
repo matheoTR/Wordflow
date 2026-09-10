@@ -1,10 +1,3 @@
-# LIST OF FUNCTIONS
-# wordflow --translate
-# wordflow --cloze (--lang)
-# wordflow --help
-# wordflow --wizard
-# wordflow --print_config
-
 import sys
 import argparse
 from importlib.resources import files
@@ -18,17 +11,17 @@ from .my_classes import GlobalConfig, AnkiConfig, TranslatorConfig
 from .notifications import notify
 
 
-def print_manual():
-    """Reads and prints the long-form manual."""
-    try:
-        manual = (
-            files(__package__)
-            .joinpath("data", "help_manual.md")
-            .read_text(encoding="utf-8")
-        )
-        print(manual)
-    except FileNotFoundError:
-        print("Help manual not found.", file=sys.stderr)
+# def print_manual():
+#     """Reads and prints the long-form manual."""
+#     try:
+#         manual = (
+#             files(__package__)
+#             .joinpath("data", "help_manual.md")
+#             .read_text(encoding="utf-8")
+#         )
+#         print(manual)
+#     except FileNotFoundError:
+#         print("Help manual not found.", file=sys.stderr)
 
 
 def get_parser():
@@ -57,9 +50,6 @@ def get_parser():
         action="store_true",
         help="Launch the interactive configuration wizard.",
     )
-    group.add_argument(
-        "-m", "--manual", action="store_true", help="Print the full user manual."
-    )
 
     group.add_argument(
         "--print_config",
@@ -86,12 +76,7 @@ def get_parser():
         action=argparse.BooleanOptionalAction,
         help="Enable or disable notifications (overrides config.toml)",
     )
-    parser.add_argument(
-        "--translator",
-        type=str,
-        default=None,
-        help="Override translator used for translation",
-    )
+
     return parser
 
 
@@ -107,10 +92,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        # 2. Handle manual, config and wizard
-        if args.manual:
-            print_manual()
-            sys.exit(0)
+        # 2. Handle config and wizard
         if args.wizard:
             config = launch_wizard()
             create_config(config)
@@ -120,13 +102,13 @@ def main():
             sys.exit(0)
 
         # 3. loads configuration
-        global_config, translator_config, raw_anki_data = load_config(
-            args.source_language, args.target_language, args.notify, args.translator
+        global_config, raw_anki_data = load_config(
+            args.source_language, args.target_language, args.notify
         )
 
         # 4. trigger workflow
         if args.translate:
-            translate_workflow(global_config, translator_config)
+            translate_workflow(global_config)
 
         elif args.cloze:
             cloze_workflow(global_config, raw_anki_data)
