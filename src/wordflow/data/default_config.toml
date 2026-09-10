@@ -74,15 +74,14 @@ max_examples = 1
 # {synonyms}      - Synonyms (if available)
 # {examples}      - Example sentences containing the word (if available)
 [anki.default.fields]
-"front" = "{cloze}"
-"translation" = "{translation}<br><br>{word_audio}<br>{sentence_audio}"
-"word" = "{source_word}"
-"sentence_phonetic" = "{sentence_phonetic}"
-"word_phonetic" = "{word_phonetic}"
-"alternates" = "{alternates}"
-"definitions" = "{definitions}"
-"synonyms" = "{synonyms}"
-"examples" = "{examples}"
+"Sentence" = "{cloze}"
+"Translation" = "{translation}"
+"Audio" = "{word_audio} &nbsp;&nbsp;&nbsp; {sentence_audio}"
+"Phonetics" = "{word_phonetic} &nbsp;&nbsp;&nbsp; {sentence_phonetic}"
+"Definitions" = "{definitions}"
+"Synonyms" = "{synonyms}"
+"Alternates" = "{alternates}"
+"Examples" = "{examples}"
 # ------------------------------------------------------------------------------
 # LANGUAGE-SPECIFIC OVERRIDES
 # Triggered when the source language is detected, or when passing -l/--lang <language_iso_code>
@@ -93,7 +92,6 @@ max_examples = 1
 [anki.zh-cn]
 deck = "Languages::Chinese"
 card_model = "Chinese Hanzi Cloze"
-# field_names = ["Hanzi", "Translation", "Stroke_Order"]
 
 # Override for Dutch (-l nl)
 [anki.nl]

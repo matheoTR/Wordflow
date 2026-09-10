@@ -19,14 +19,6 @@ class AnkiConfig:
 
 
 @dataclass
-class TranslatorConfig:
-    translator: str
-    api_key: str
-    api_base_url: str
-    engine_model: str
-
-
-@dataclass
 class GlobalConfig:
     source_language: str
     target_language: str

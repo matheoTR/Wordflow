@@ -139,10 +139,6 @@ def launch_wizard() -> dict:
             "target_language": target_language,
             "enable_notifications": enable_notifs,
         },
-        "translator": {
-            "api_base_url": "",
-            "engine_model": "",
-        },
         "anki": {
             "default": {
                 "url": anki_url,

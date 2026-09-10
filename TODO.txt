@@ -1,4 +1,2 @@
 - add basic and reverse basic workflow
-- add cloze cancel shortcut?
-- add synonyms, extra translations, pronounciation, definition, examples optional fields to config AND to anki
-- remove old translator class
+- update documentation to reflect all new functionnalities

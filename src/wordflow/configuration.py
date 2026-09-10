@@ -5,7 +5,7 @@ from pathlib import Path
 from importlib.resources import files
 import tomli_w
 
-from .my_classes import GlobalConfig, TranslatorConfig, AnkiConfig
+from .my_classes import GlobalConfig, AnkiConfig
 
 
 config_dir = Path.home() / ".config" / "wordflow"
@@ -71,7 +71,7 @@ def load_config(
 ):
     """
     reads user config or creates one if there is none
-    returns GlobalConfig, TranslatorConfig classes, and raw anki data dictionnary
+    returns GlobalConfig, and raw anki data dictionnary
     """
 
     # create default config the first time

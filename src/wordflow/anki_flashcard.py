@@ -54,14 +54,11 @@ def setup_anki_model(url: str, model_name: str, fields: dict):
     if model_name in existing_models:
         existing_fields = invoke(url, "modelFieldNames", modelName=model_name)
 
-        # debug
-        print(f"Anki expects : {existing_fields}\nConfig sends : {field_names}\n")
-
         if existing_fields != field_names:
             raise AnkiConfigError(
                 f"\nFATAL: The Anki model '{model_name}' already exists, but its fields do not match your config.toml.\n"
                 f"Anki expects : {existing_fields}\n"
-                f"Config sends : {fields}\n"
+                f"Config sends : {field_names}\n"
             )
         return
 
@@ -70,7 +67,8 @@ def setup_anki_model(url: str, model_name: str, fields: dict):
         css = """
         .card { font-family: arial; font-size: 20px; text-align: center; color: white; background-color: #282a36; }
         .cloze { font-weight: bold; color: #ffb86c; }
-        #answer { border-top: 1px solid #6272a4; margin-top: 15px; padding-top: 15px; }
+        #answer { border-top: 1px solid #6272a4; margin-top: 8px; padding-top: 10px; }
+        .anki-field { margin-top: 12px; }
         """
         # front. Works since keys are kept in order in python dict
         front_anki = "{{cloze:" + field_names[0] + "}}"
@@ -81,7 +79,13 @@ def setup_anki_model(url: str, model_name: str, fields: dict):
             # Using Anki conditional rendering
             # This ensures no whitespace is added if the field is left blank.
             conditional_render = (
-                "{{#" + field + "}}<br><br>{{" + field + "}}{{/" + field + "}}"
+                "{{#"
+                + field
+                + "}}<div class='anki-field'>{{"
+                + field
+                + "}}</div>{{/"
+                + field
+                + "}}"
             )
             back_anki_parts.append(conditional_render)
 
@@ -123,8 +127,10 @@ def make_cloze(
     # make sure deck exists
     invoke(anki_config.url, "createDeck", deck=anki_config.deck)
 
-    # Make each field match required piece: should return a dict of fields:content
-    formatted_anki_fields = process_fields(anki_config, sentence_data, word_data)
+    # Make each field match required instructions in config
+    formatted_anki_fields = process_fields(
+        anki_config=anki_config, sentence_data=sentence_data, word_data=word_data
+    )
 
     # create payload
     note = {
@@ -162,7 +168,9 @@ def add_audio_to_anki(url: str, text: str, lang_code: str, accent: str):
     return f"[sound:{filename}]"
 
 
-def process_fields(anki_config, word_data, sentence_data) -> dict:
+def process_fields(
+    anki_config: AnkiConfig, sentence_data: TranslationData, word_data: TranslationData
+) -> dict:
     """
     Builds the replacement dictionary, generating audio only if required,
     and formats the user's custom Anki fields.
@@ -173,21 +181,25 @@ def process_fields(anki_config, word_data, sentence_data) -> dict:
 
     word_audio_instruction = ""
     if "{word_audio}" in all_fields_template:
-        word_audio_instruction = add_audio_to_anki(
+        tag = add_audio_to_anki(
             anki_config.url,
             word_data.source_data,
             word_data.source_language,
             anki_config.audio_accent,
         )
+        word_audio_instruction = (
+            f"<span style='font-size: 15px; color: #8be9fd;'><b>Word:</b> {tag}</span>"
+        )
 
     sentence_audio_instruction = ""
     if "{sentence_audio}" in all_fields_template:
-        sentence_audio_instruction = add_audio_to_anki(
+        tag = add_audio_to_anki(
             anki_config.url,
             sentence_data.source_data,
             sentence_data.source_language,
             anki_config.audio_accent,
         )
+        sentence_audio_instruction = f"<span style='font-size: 15px; color: #8be9fd;'><b>Sentence:</b> {tag}</span>"
 
     # 2. CLOZE GENERATION + optionnal dictionary url
     if anki_config.dict_url:
@@ -208,30 +220,48 @@ def process_fields(anki_config, word_data, sentence_data) -> dict:
     cloze_instruction = pattern.sub(cloze_tag, sentence_data.source_data)
 
     # 3. BUILD THE DICTIONARY
+    def format_labeled_list(data_list, max_items, label, separator=", "):
+        if not data_list:
+            return ""
+        items = separator.join(data_list[:max_items])
+        return f"<b>{label}:</b> {items}"
+
     format_dict = {
+        # base
         "cloze": cloze_instruction,
         "translation": sentence_data.translated_data,
         "source_word": word_data.source_data,
+        # audio
         "word_audio": word_audio_instruction,
         "sentence_audio": sentence_audio_instruction,
-        "sentence_phonetic": getattr(sentence_data, "phonetic", ""),
-        "word_phonetic": getattr(word_data, "phonetic", ""),
-        "alternates": "<br>".join(
-            word_data.alternate_translations[: anki_config.max_alternates]
-        )
-        if word_data.alternate_translations
-        else "",
-        "definitions": "<br><br>".join(
-            word_data.definitions[: anki_config.max_definitions]
-        )
-        if word_data.definitions
-        else "",
-        "synonyms": ", ".join(word_data.synonyms[: anki_config.max_synonyms])
-        if getattr(word_data, "synonyms", None)
-        else "",
-        "examples": "<br><br>".join(word_data.examples[: anki_config.max_examples])
-        if getattr(word_data, "examples", None)
-        else "",
+        # phonetic
+        "sentence_phonetic": format_labeled_list(
+            getattr(sentence_data, "phonetic", ""), 1, "sentence phonetic"
+        ),
+        "word_phonetic": format_labeled_list(
+            getattr(word_data, "phonetic", ""), 1, "word phonetic"
+        ),
+        # other
+        "alternates": format_labeled_list(
+            getattr(word_data, "alternate_translations", None),
+            anki_config.max_alternates,
+            "Alternates",
+        ),
+        "definitions": format_labeled_list(
+            getattr(word_data, "definitions", None),
+            anki_config.max_definitions,
+            "Definitions",
+            separator="<br>&bull; ",
+        ),
+        "synonyms": format_labeled_list(
+            getattr(word_data, "synonyms", None), anki_config.max_synonyms, "Synonyms"
+        ),
+        "examples": format_labeled_list(
+            getattr(word_data, "examples", None),
+            anki_config.max_examples,
+            "Examples",
+            separator="<br>&bull; ",
+        ),
     }
 
     # 4. FORMAT FIELDS
@@ -249,4 +279,5 @@ def process_fields(anki_config, word_data, sentence_data) -> dict:
                 f"Warning: Unknown placeholder {e} in config field '{field_name}'"
             )
 
+    print("fields sent to anki: ", formatted_anki_fields)
     return formatted_anki_fields

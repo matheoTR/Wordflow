@@ -1,27 +1,13 @@
 import sys
 import argparse
-from importlib.resources import files
 import traceback
 
 # local modules
 from .configuration import create_config, load_config, print_config
 from .workflows import translate_workflow, cloze_workflow
 from .wizard import launch_wizard
-from .my_classes import GlobalConfig, AnkiConfig, TranslatorConfig
+from .my_classes import GlobalConfig, AnkiConfig
 from .notifications import notify
-
-
-# def print_manual():
-#     """Reads and prints the long-form manual."""
-#     try:
-#         manual = (
-#             files(__package__)
-#             .joinpath("data", "help_manual.md")
-#             .read_text(encoding="utf-8")
-#         )
-#         print(manual)
-#     except FileNotFoundError:
-#         print("Help manual not found.", file=sys.stderr)
 
 
 def get_parser():

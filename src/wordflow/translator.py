@@ -94,7 +94,7 @@ def translate(
             )
             # DEBUG
             print("json data: ", response.json())
-            print(translation_data)
+            print("translation data: ", translation_data)
             return translation_data
 
         except requests.RequestException as e:

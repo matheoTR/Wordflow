@@ -2,7 +2,7 @@ from .clipboard import get_text, ClipboardError, TimeOutError
 from .translator import translate, TranslationError
 from .notifications import notify
 from .anki_flashcard import AnkiConnectError, DuplicateNoteError, make_cloze
-from .my_classes import TranslationData, TranslatorConfig, AnkiConfig, GlobalConfig
+from .my_classes import TranslationData, AnkiConfig, GlobalConfig
 from .configuration import resolve_anki_config
 
 
