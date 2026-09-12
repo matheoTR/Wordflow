@@ -91,7 +91,6 @@ max_examples = 1
 # Override for Chinese (-l zh-cn)
 [anki.zh-cn]
 deck = "Languages::Chinese"
-card_model = "Chinese Hanzi Cloze"
 
 # Override for Dutch (-l nl)
 [anki.nl]

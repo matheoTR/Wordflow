@@ -12,7 +12,7 @@ license = { text = "MIT" }
 authors = [
     { name = "Mathéo Tritschler", email = "tritschler.matheo@gmail.com" }
 ]
-keywords = ["anki", "translation", "flashcards", "cli", "linux", "language"]
+keywords = ["anki", "translation", "flashcards", "cli", "linux", "language", "automated flashcards", "automated translation"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: End Users/Desktop",

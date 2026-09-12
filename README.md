@@ -1,70 +1,157 @@
+$$\      $$\                           $$\       $$$$$$$$\ $$\                         
+$$ | $\  $$ |                          $$ |      $$  _____|$$ |                        
+$$ |$$$\ $$ | $$$$$$\   $$$$$$\   $$$$$$$ |      $$ |      $$ | $$$$$$\  $$\  $$\  $$\ 
+$$ $$ $$\$$ |$$  __$$\ $$  __$$\ $$  __$$ |      $$$$$\    $$ |$$  __$$\ $$ | $$ | $$ |
+$$$$  _$$$$ |$$ /  $$ |$$ |  \__|$$ /  $$ |      $$  __|   $$ |$$ /  $$ |$$ | $$ | $$ |
+$$$  / \$$$ |$$ |  $$ |$$ |      $$ |  $$ |      $$ |      $$ |$$ |  $$ |$$ | $$ | $$ |
+$$  /   \$$ |\$$$$$$  |$$ |      \$$$$$$$ |      $$ |      $$ |\$$$$$$  |\$$$$$\$$$$  |
+\__/     \__| \______/ \__|       \_______|      \__|      \__| \______/  \_____\____/ 
+
 # Wordflow
 
-A lightning-fast, keyboard-driven language acquisition tool for Linux. 
+A lightning-fast, dependency-free, keyboard-driven language acquisition tool for Linux.
 
-Wordflow bridges your system clipboard, translation APIs, Text-To-Speech and Anki into a single workflow. By simply highlighting text and pressing a shortcut, you can instantly translate sentences or dynamically generate cloze Anki flashcards without ever leaving your browser, book, or current window. It is also possible to easily copy a translation to clipboard, and to add automatically generated audio to your cards.
+Wordflow bridges your system clipboard, Google's internal translation APIs, Text-To-Speech, and Anki into a single seamless workflow. By simply highlighting text and pressing a shortcut, you can instantly translate sentences or dynamically generate Anki flashcards without ever leaving your browser, book, or current window.
+# ✨ Features
 
-## ⚠️ Limitations & Scope
-Before installing, please note the intentional scope of this project:
-* **Linux Only:** Wordflow is built specifically for Linux environments
-* **Cloze Cards Only:** This tool *only* generates Cloze deletion cards. It does not support Basic (Front/Back) cards, synonym mapping, or reverse cards.
-* **Fixed Format:** Cards are automatically generated with a strict structure: the clozed word, the full context sentence, the translation, and an optional clickable hyperlink to an online dictionary.
-* **No Offline Dictionaries:** Translations rely on online APIs (e.g., Google Translate, DeepL, MyMemory).
+    Zero-Dependency Translation: Directly hooks into Google's native API endpoints for instantaneous, rate-limit-resistant translations without relying on web scrapers.
 
-## 🛠 Prerequisites
-1. **Python 3.10+**
-2. **X11/Wayland Clipboard:** `xclip` or `wl-clipboard` must be installed on your system.
-3. **Anki Desktop:** Must be installed and running in the background.
-4. **AnkiConnect:** You must install the AnkiConnect add-on to allow Wordflow to talk to Anki: https://ankiweb.net/shared/info/2055492159
+    Rich Dictionary Data: Automatically fetches synonyms, monolingual definitions, alternate translations, and curated example sentences for single words.
 
-### Installing AnkiConnect
-1. Open Anki.
-2. Go to **Tools** -> **Add-ons** -> **Get Add-ons...**
-3. Paste the AnkiConnect code: `2055492159`
-4. Restart Anki. *(Note: Anki must remain open in the background whenever you use Wordflow).*
+    Phonetics & Romanization: Natively captures pronunciations like Pinyin for Chinese or Romaji for Japanese.
 
-## 🚀 Installation
-The recommended way to install Wordflow on Linux is using `pipx`, which installs the tool globally while keeping its Python dependencies safely isolated.
-```bash
-# Install pipx if you haven't already
-sudo pacman -S python-pipx   # Arch
-sudo apt install pipx        # Debian/Ubuntu
+    Dual Audio Generation: Generates native MP3 audio for both the isolated word and the full sentence, directly embedded into your flashcards.
 
-# Install Wordflow
-pipx install wordflow
-```
-(If installing from a local cloned repository, navigate to the folder and run `pipx install .`)
-## Configuration
-Wordflow comes with a built-in interactive wizard to help you generate your configuration file.
-Run the initialization wizard: `wordflow --init`
-This will guide you through setting up your preferred translation engine and default Anki deck, saving the results to ~/.config/wordflow/config.toml.
-### Language-Specific Overrides
-You can manually edit config.toml to route different languages to different Anki decks and dictionaries. Wordflow automatically detects the language of your highlighted text and applies the correct settings.
-#### Example
-  [anki.zh-cn]
-  deck = "Languages::Chinese"
-  card_model = "Chinese Hanzi Cloze"
-  field_names = ["Hanzi", "Pinyin", "Stroke_Order"]
-  dict_url = "[https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb=](https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb=){word}"
-### Text-To-Speech (TTS)
-When `audio_mode` is enabled, Wordflow generates speech using Google's neural TTS engine. By default, it uses standard regional accents, but you can customize this by changing the optional `audio_accent` setting.
-The setting corresponds to the Google domain extension for the region you want to target (e.g., `google.co.uk` becomes `co.uk`). Please refer to https://gtts.readthedocs.io/en/latest/module.html#localized-accents for more info
-#### Example
-  [anki.en]
-  audio_mode = "word"
-  audio_accent = "co.uk"   # Will read English words with a British accent
-## Usage
-### 1. Instant Translation (-t)
-Highlight any text on your screen and then trigger the `wordflow --translate` command. Wordflow will detect the language, translate it, and send a desktop notification.
-Clicking the notification will also copy the translation, making it easy to copy paste.
-### 2. Cloze Card Creation (-c)
-To create a flashcard, highlight the target word/sentence and trigger the `wordflow --cloze` command. Wordflow will automatically build the card and push it to Anki.
-### Other
-use `wordflow --help` to list all functionalities
+    Infinite Layout Flexibility: Map any piece of fetched data to any field on your Anki cards using a highly intuitive placeholder configuration system.
 
-## Creating Shortcuts
-This tool really shines if you bind shortcuts to call it. Then you can seamlessly translate and create flashcards from any text without needing to open other windows.
-### Hyprland example (submap)
+# ⚠️ Limitations & Scope
+
+    Linux Only: Wordflow is built specifically for Linux environments (X11/Wayland).
+
+    Internet Required: Translations and audio generation rely on live online APIs.
+
+# 🛠 Prerequisites
+
+    Python 3.10+
+
+    Clipboard Manager: xclip (X11) or wl-clipboard (Wayland) must be installed.
+
+    Anki Desktop: Must be installed and running in the background.
+
+    AnkiConnect: You must install the AnkiConnect add-on to allow Wordflow to communicate with Anki.
+
+# Installing AnkiConnect
+
+    Open Anki.
+
+    Go to Tools -> Add-ons -> Get Add-ons...
+
+    Paste the AnkiConnect code: 2055492159
+
+    Restart Anki.
+
+# 🚀 Installation
+## 1. Via pipx (Recommended)
+### a) Install directly from Github
+    pipx install git+[https://github.com/matheoTR/Wordflow.git](https://github.com/matheoTR/Wordflow.git)
+### b) Clone and install locally
+    git clone [https://github.com/matheoTR/Wordflow.git](https://github.com/matheoTR/Wordflow.git)
+    cd Wordflow
+    pipx install .
+## 2. Via git and makepkg (Arch build)
+  If you prefer building from the versioned source using a PKGBUILD, you can clone the repository and run makepkg. It will then be managed by pacman.
+
+    git clone https://github.com/matheoTR/Wordflow.git
+    cd Wordflow
+    makepkg -si
+
+## 3. Via Package Managers (apt, pacman, dnf)
+  Not yet available.
+
+# ⚙️ Configuration
+  Run the initialization wizard to generate your default configuration:
+
+    wordflow --wizard
+
+  This guides you through setting up your default Anki deck and creates your configuration file at ~/.config/wordflow/config.toml.
+  ## Field Mappings & Placeholders
+
+  Wordflow's true power lies in its dynamic field mappings. In your config.toml, you map Anki note fields (left) to Wordflow's data placeholders (right). You can combine multiple placeholders and inject custom HTML. Missing or empty data is gracefully ignored by Anki.
+
+### Available Placeholders:
+
+    {cloze} - The sentence with the {{c1::word}} deletion and optional dictionary hyperlink.
+
+    {translation} - The translation of the full sentence.
+
+    {source_word} - The isolated highlighted word.
+
+    {word_audio} - Audio play button for the isolated word.
+
+    {sentence_audio} - Audio play button for the full sentence.
+
+    {sentence_phonetic} - Phonetics/Romanization of the sentence.
+
+    {word_phonetic} - Phonetics/Romanization of the word.
+
+    {alternates} - Alternative translation variations.
+
+    {definitions} - Monolingual dictionary definitions.
+
+    {synonyms} - Synonyms of the target word.
+
+    {examples} - Example sentences using the word.
+
+### Configuration Example
+    Ini, TOML
+
+    [anki.default.fields]
+    "Front" = "{cloze}"
+    "Back" = "{translation}"
+    "Audio" = "{word_audio} &nbsp;&nbsp;&nbsp; {sentence_audio}"
+    "Phonetics" = "{word_phonetic} &nbsp;&nbsp;&nbsp; {sentence_phonetic}"
+    "Definitions" = "{definitions}"
+    "Synonyms" = "{synonyms}"
+    "Alternates" = "{alternates}"
+    "Examples" = "{examples}"
+
+## Language-Specific Overrides
+
+  You can manually edit config.toml to route different languages to different Anki decks, models, and dictionaries. Wordflow automatically detects the language of your highlighted text and applies the correct settings.
+
+    Override for Chinese (-l zh-cn)
+    [anki.zh-cn]
+    deck = "Languages::Chinese"
+    card_model = "Chinese Hanzi Cloze"
+    dict_url = "https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb={word}"
+
+    [anki.zh-cn.fields]
+    "Hanzi" = "{cloze}"
+    "Translation" = "{translation}"
+    "Pinyin" = "{word_phonetic} {sentence_phonetic}"
+
+## Text-To-Speech Accents
+
+Wordflow automatically routes audio to native speakers of the detected language. You can customize the accent for pluricentric languages (like English or Spanish) by changing the optional audio_accent setting to match a regional Top-Level Domain (TLD). This setting does not work for all languages.
+### example
+    [anki.es]
+    # Generates Mexican Spanish audio instead of Castilian Spanish
+    audio_accent = "com.mx" 
+
+# 🖱️ Usage
+## Instant Translation (-t)
+
+  Highlight any text on your screen and trigger the wordflow --translate command. Wordflow detects the language, translates it, and sends a desktop notification. Clicking the notification copies the translation to your clipboard.
+## Cloze Card Creation (-c)
+
+  To create a flashcard, highlight the target word/sentence and trigger wordflow --cloze. Wordflow will parse all dictionary data, build the card according to your TOML layout, and push it directly to Anki.
+
+Use wordflow --help to list all command-line arguments.
+
+# ⌨️ Creating Shortcuts
+
+Wordflow is designed to be bound to your window manager's shortcuts, allowing you to seamlessly translate and capture vocabulary without losing focus on your current task.
+## Hyprland Example (Submap)
     hl.bind(mod .. " + C", hl.dsp.submap("wordflow")) -- wordflow
 
     hl.define_submap("wordflow", function()
@@ -81,6 +168,7 @@ This tool really shines if you bind shortcuts to call it. Then you can seamlessl
 
       hl.bind("catchall", hl.dsp.submap("reset"))
     end)
-### Sway /i3 example
+
+## Sway / i3 Example
     bindsym Mod4+t exec "wordflow -t"
     bindsym Mod4+c exec "wordflow -c"

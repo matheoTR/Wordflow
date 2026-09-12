@@ -1,2 +1,3 @@
 - add basic and reverse basic workflow
 - update documentation to reflect all new functionnalities
+- update wizard

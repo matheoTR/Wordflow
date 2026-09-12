@@ -49,13 +49,30 @@ def create_config(config_dict: dict | None = None):
 
         config_dir.mkdir(parents=True, exist_ok=True)
         config_file.write_text(default_config.strip(), encoding="utf-8")
-        return 0
+        return True
     # else we make a custom config (from the wizard)
     try:
         config_dir.mkdir(parents=True, exist_ok=True)
         with open(config_file, "wb") as f:
             tomli_w.dump(config_dict, f)
-        return config_file
+
+        commented_examples = """
+# ------------------------------------------------------------------------------
+# LANGUAGE-SPECIFIC OVERRIDES (EXAMPLES)
+# ------------------------------------------------------------------------------
+# Uncomment and modify these to change settings dynamically based on the detected language.
+
+# Override for Dutch (-sl nl)
+# [anki.nl]
+# deck = "Languages::Nederlands"
+
+# Override for Spanish (-sl es)
+# [anki.es]
+# audio_accent = "com.mx" # Uses Mexican Spanish pronunciation
+            """
+        with open(config_file, "a", encoding="utf-8") as f:
+            f.write(commented_examples)
+        return True
 
     except Exception as e:
         # Fallback error handling if there's a permission issue
