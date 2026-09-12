@@ -52,7 +52,7 @@ Wordflow bridges your system clipboard, Google's internal translation APIs, Text
 
 # 🚀 Installation
 ## 1. Via pipx (Recommended)
-### a) Install directly from Github
+### a) Install directly from pipx
     pipx install wordflow-cli
 ### b) Clone and install locally
     git clone [https://github.com/matheoTR/Wordflow.git](https://github.com/matheoTR/Wordflow.git)
