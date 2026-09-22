@@ -138,7 +138,7 @@ def resolve_anki_config(
     anki_override_fields = anki_override.get("fields", {})
 
     anki_config = AnkiConfig(
-        url=anki_override.get("url", anki_defaults.get("url")),
+        url=anki_override.get("url", anki_defaults.get("url", "http://localhost:8765")),
         deck=anki_override.get(
             "deck", anki_defaults.get("deck", "Wordflow::{source_language}")
         ).replace("{source_language}", str(active_language)),

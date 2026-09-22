@@ -133,12 +133,16 @@ Wordflow automatically routes audio to native speakers of the detected language.
 ## Instant Translation (-t)
 
   Highlight any text on your screen and trigger the wordflow --translate command. Wordflow detects the language, translates it, and sends a desktop notification. Clicking the notification copies the translation to your clipboard.
+
 ## Cloze Card Creation (-c)
 
   To create a flashcard, highlight the target word/sentence and trigger wordflow --cloze. Wordflow will parse all dictionary data, build the card according to your TOML layout, and push it directly to Anki.
 
 Use wordflow --help to list all command-line arguments.
 
+## Undo Last Card (-u / --undo)
+
+If you accidentally create a card with a typo or the wrong highlighted text, simply trigger the `wordflow --undo` command. Wordflow remembers the ID of the last flashcard it generated and will instantly delete it from your Anki database.
 # ⌨️ Creating Shortcuts
 
 Wordflow is designed to be bound to your window manager's shortcuts, allowing you to seamlessly translate and capture vocabulary without losing focus on your current task.
@@ -156,6 +160,11 @@ Wordflow is designed to be bound to your window manager's shortcuts, allowing yo
         hl.dispatch(hl.dsp.submap("reset"))
         hl.dispatch(hl.dsp.exec_cmd("wordflow -c"))
       end)
+      --u : Undo last card
+      hl.bind("U", function()
+        hl.dispatch(hl.dsp.submap("reset"))
+        hl.dispatch(hl.dsp.exec_cmd("wordflow -u"))
+      end)
 
       hl.bind("catchall", hl.dsp.submap("reset"))
     end)
@@ -163,3 +172,4 @@ Wordflow is designed to be bound to your window manager's shortcuts, allowing yo
 ## Sway / i3 Example
     bindsym Mod4+t exec "wordflow -t"
     bindsym Mod4+c exec "wordflow -c"
+    bindsym Mod4+u exec "wordflow -u"

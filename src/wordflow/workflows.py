@@ -1,9 +1,39 @@
+import os
+import tempfile
+
 from .clipboard import get_text, ClipboardError, TimeOutError
 from .translator import translate, TranslationError
 from .notifications import notify
-from .anki_flashcard import AnkiConnectError, DuplicateNoteError, make_cloze
+from .anki_flashcard import (
+    AnkiConnectError,
+    DuplicateNoteError,
+    make_cloze,
+    delete_note,
+)
 from .my_classes import TranslationData, AnkiConfig, GlobalConfig
 from .configuration import resolve_anki_config
+
+
+CACHE_FILE = os.path.join(tempfile.gettempdir(), "wordflow_last_note.txt")
+
+
+def undo_workflow(anki_url, enable_notifications):
+    """tries to delete the last card created using wordflow"""
+    try:
+        with open(CACHE_FILE, "r") as f:
+            last_id = int(f.read().strip())
+            delete_note(anki_url, last_id)
+
+        # Clear the cache
+        os.remove(CACHE_FILE)
+        notify(
+            "Undo OK",
+            f"Successfully deleted the last created flashcard (ID: {last_id}).",
+            enable_notifications=enable_notifications,
+        )
+
+    except (FileNotFoundError, ValueError):
+        print("No recent flashcard found to undo.")
 
 
 def translate_workflow(global_config: GlobalConfig):
@@ -59,7 +89,10 @@ def cloze_workflow(
     global_config: GlobalConfig,
     raw_anki_data: dict,
 ):
-    """creates an anki cloze flashcard from clipboard, automatically detecting correct language settings"""
+    """
+    creates an anki cloze flashcard from clipboard, automatically detecting correct language settings
+    writes the id of the resulting card in a temp file
+    """
     try:
         # 1. Get sentence
         original_sentence = get_text()
@@ -88,14 +121,19 @@ def cloze_workflow(
         resolved_anki_config = resolve_anki_config(
             raw_anki_data, sentence_translation_data.source_language
         )
-        #
+
         # 5. Make the cloze card and send it to anki
-        make_cloze(
+        note_id = make_cloze(
             anki_config=resolved_anki_config,
             sentence_data=sentence_translation_data,
             word_data=word_translation_data,
         )
-        # 5. Notify success
+
+        # 6. write note id in temp file (for potential undo)
+        with open(CACHE_FILE, "w") as f:
+            f.write(str(note_id))
+
+        # 7. Notify success
         notify(
             "Anki Success",
             f"Cloze card created for: '{word_to_cloze}' in {resolved_anki_config.deck}",

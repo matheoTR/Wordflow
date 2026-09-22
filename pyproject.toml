@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wordflow-cli"
-version = "0.1.5"
+version = "0.1.6"
 description = "Automate Anki flashcard creation and text translation directly from your clipboard."
 readme = "README.md"
 requires-python = ">=3.11"

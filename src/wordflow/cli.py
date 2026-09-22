@@ -4,7 +4,7 @@ import traceback
 
 # local modules
 from .configuration import create_config, load_config, print_config
-from .workflows import translate_workflow, cloze_workflow
+from .workflows import translate_workflow, cloze_workflow, undo_workflow
 from .wizard import launch_wizard
 from .my_classes import GlobalConfig, AnkiConfig
 from .notifications import notify
@@ -35,6 +35,9 @@ def get_parser():
         "--wizard",
         action="store_true",
         help="Launch the interactive configuration wizard.",
+    )
+    group.add_argument(
+        "-u", "--undo", action="store_true", help="cancel last created card"
     )
 
     group.add_argument(
@@ -77,8 +80,8 @@ def main():
 
     args = parser.parse_args()
 
+    # handle correct operation
     try:
-        # 2. Handle config and wizard
         if args.wizard:
             config = launch_wizard()
             create_config(config)
@@ -87,17 +90,23 @@ def main():
             print_config()
             sys.exit(0)
 
-        # 3. loads configuration
+        # loads configuration
         global_config, raw_anki_data = load_config(
             args.source_language, args.target_language, args.notify
         )
 
-        # 4. trigger workflow
         if args.translate:
             translate_workflow(global_config)
+            sys.exit(0)
 
-        elif args.cloze:
+        if args.cloze:
             cloze_workflow(global_config, raw_anki_data)
+            sys.exit(0)
+
+        if args.undo:
+            url = raw_anki_data.get("default", {}).get("url", "http://localhost:8765")
+            undo_workflow(url, global_config.enable_notifications)
+            sys.exit(0)
 
     except KeyboardInterrupt:
         notify(

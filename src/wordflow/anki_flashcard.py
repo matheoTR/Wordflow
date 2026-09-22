@@ -111,9 +111,10 @@ def setup_anki_model(url: str, model_name: str, fields: dict):
 
 def make_cloze(
     anki_config: AnkiConfig, sentence_data: TranslationData, word_data: TranslationData
-):
+) -> str:
     """
     makes a cloze flashcard and sends it to anki through AnkiConnect
+    returns the id of the created card
     """
     # before doing anything, checks that the word is in the sentence
     if word_data.source_data.lower() not in sentence_data.source_data.lower():
@@ -142,14 +143,14 @@ def make_cloze(
     }
 
     try:
-        invoke(anki_config.url, "addNote", note=note)
+        note_id = invoke(anki_config.url, "addNote", note=note)
     except AnkiConnectError as e:
         if "duplicate" in str(e).lower():
             raise DuplicateNoteError(
                 f"A note for '{word_data.source_data}' already exists."
             )
-        raise e
-    return True
+        raise AnkiConnectError(e)
+    return note_id
 
 
 def add_audio_to_anki(url: str, text: str, lang_code: str, accent: str):
@@ -281,3 +282,8 @@ def process_fields(
 
     print("fields sent to anki: ", formatted_anki_fields)
     return formatted_anki_fields
+
+
+def delete_note(anki_url: str, note_id: int):
+    invoke(anki_url, "deleteNotes", notes=[note_id])
+    return True
