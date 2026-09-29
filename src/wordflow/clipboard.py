@@ -25,10 +25,11 @@ def get_text(exclusive_text: str = "") -> str:
     can pass exclusive_text to omit input equal to the excluded text
     throws timeout and clipboard errors.
     """
-    # transfer highlighted text to clipboard
-    simulate_copy()
-
     for _ in range(10):
+        # On macOS and Windows, simulate copy keystroke to copy current selection
+        if sys.platform in ["darwin", "win32"]:
+            simulate_copy()
+
         current_highlight = get_clipboard_content()
         if current_highlight and current_highlight != exclusive_text:
             return current_highlight
@@ -41,14 +42,22 @@ def get_clipboard_content() -> str:
 
     # macOS
     if sys.platform == "darwin":
+        if not shutil.which("pbpaste"):
+            raise ClipboardError(
+                "Missing dependency: 'pbpaste' is not installed."
+            )
         try:
             result = subprocess.run(
-                ["pbpaste"], capture_output=True, text=True, check=True
+                ["pbpaste"],
+                capture_output=True,
+                text=True,
+                check=True,
+                errors="replace",
+                env={**os.environ, "LANG": os.environ.get("LANG", "en_US.UTF-8")},
             )
-            if result.stdout.strip():
-                return result.stdout.strip()
+            return result.stdout.strip()
         except subprocess.CalledProcessError:
-            pass
+            return ""
 
     # Windows
     elif sys.platform == "win32":
@@ -59,11 +68,11 @@ def get_clipboard_content() -> str:
                 capture_output=True,
                 text=True,
                 check=True,
+                errors="replace",
             )
-            if result.stdout.strip():
-                return result.stdout.strip()
+            return result.stdout.strip()
         except subprocess.CalledProcessError:
-            pass
+            return ""
     else:
         is_wayland = bool(os.environ.get("WAYLAND_DISPLAY"))
         if is_wayland:
@@ -82,16 +91,6 @@ def get_clipboard_content() -> str:
             except subprocess.CalledProcessError:
                 pass
 
-            # Fallback to normal clipboard BLOCKED
-            # try:
-            #     result = subprocess.run(
-            #         ["wl-paste"], capture_output=True, text=True, check=True
-            #     )
-            #     if result.stdout.strip():
-            #         return result.stdout.strip()
-            # except subprocess.CalledProcessError:
-            #     pass  # Standard clipboard is also empty
-
         else:
             # X11 approach using xclip
             if not shutil.which("xclip"):
@@ -109,38 +108,39 @@ def get_clipboard_content() -> str:
                     return result.stdout.strip()
             except subprocess.CalledProcessError:
                 pass
-            # # Fallback to standard clipboard BLOCKED
-            # try:
-            #     result = subprocess.run(
-            #         ["xclip", "-o", "-selection", "clipboard"],
-            #         capture_output=True,
-            #         text=True,
-            #         check=True
-            #     )
-            #     if result.stdout.strip():
-            #         return result.stdout.strip()
-            # except subprocess.CalledProcessError:
-            #     pass
-        # blank return otherwise
-        return ""
+
+    return ""
 
 
 def copy_to_clipboard(message: str):
     """sends a message to store in the clipboard"""
     # MacOS
     if sys.platform == "darwin":
+        if not shutil.which("pbcopy"):
+            raise ClipboardError("Missing dependency: 'pbcopy' is not installed.")
         clipboard_cmd = ["pbcopy"]
+        env = {**os.environ, "LANG": os.environ.get("LANG", "en_US.UTF-8")}
     # Windows
     elif sys.platform == "win32":
         clipboard_cmd = ["clip"]
+        env = None
     else:
         # Linux
         if os.environ.get("WAYLAND_DISPLAY"):
+            if not shutil.which("wl-copy"):
+                raise ClipboardError(
+                    "Missing dependency: 'wl-clipboard' is not installed. (e.g., sudo pacman -S wl-clipboard)"
+                )
             clipboard_cmd = ["wl-copy"]
         else:
+            if not shutil.which("xclip"):
+                raise ClipboardError(
+                    "Missing dependency: 'xclip' is not installed. (e.g., sudo pacman -S xclip)"
+                )
             clipboard_cmd = ["xclip", "-selection", "clipboard"]
+        env = None
 
-    subprocess.run(clipboard_cmd, input=message, text=True, check=True)
+    subprocess.run(clipboard_cmd, input=message, text=True, check=True, env=env)
 
 
 def simulate_copy():
@@ -149,18 +149,60 @@ def simulate_copy():
     to mimic Linux's primary selection behavior.
     """
     if sys.platform == "darwin":
-        # macOS: Use built-in AppleScript to send Cmd+C
+        # macOS: Try native CoreGraphics event first (avoids AppleScript automation prompt)
+        success = False
         try:
-            subprocess.run(
-                [
-                    "osascript",
-                    "-e",
-                    'tell application "System Events" to keystroke "c" using command down',
-                ],
-                check=True,
+            import ctypes
+
+            cg = ctypes.cdll.LoadLibrary(
+                "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics"
             )
-        except subprocess.CalledProcessError:
+            cf = ctypes.cdll.LoadLibrary(
+                "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+            )
+
+            cg.CGEventCreateKeyboardEvent.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_uint16,
+                ctypes.c_bool,
+            ]
+            cg.CGEventCreateKeyboardEvent.restype = ctypes.c_void_p
+            cg.CGEventSetFlags.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+            cg.CGEventPost.argtypes = [ctypes.c_uint32, ctypes.c_void_p]
+            cf.CFRelease.argtypes = [ctypes.c_void_p]
+
+            kCGEventFlagMaskCommand = 0x00100000
+            VK_C = 8  # Virtual keycode for 'c' on macOS
+
+            # Press Cmd+C
+            evt_down = cg.CGEventCreateKeyboardEvent(None, VK_C, True)
+            cg.CGEventSetFlags(evt_down, kCGEventFlagMaskCommand)
+            cg.CGEventPost(1, evt_down)  # kCGSessionEventTap
+            cf.CFRelease(evt_down)
+
+            # Release Cmd+C
+            evt_up = cg.CGEventCreateKeyboardEvent(None, VK_C, False)
+            cg.CGEventSetFlags(evt_up, kCGEventFlagMaskCommand)
+            cg.CGEventPost(1, evt_up)
+            cf.CFRelease(evt_up)
+            success = True
+        except Exception:
             pass
+
+        # Fallback to AppleScript if CoreGraphics is unavailable
+        if not success:
+            try:
+                subprocess.run(
+                    [
+                        "osascript",
+                        "-e",
+                        'tell application "System Events" to keystroke "c" using command down',
+                    ],
+                    capture_output=True,
+                    check=True,
+                )
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                pass
 
     elif sys.platform == "win32":
         # Windows: Use ctypes to call the native Windows API for keystrokes
