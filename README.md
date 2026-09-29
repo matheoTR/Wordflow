@@ -173,3 +173,7 @@ Wordflow is designed to be bound to your window manager's shortcuts, allowing yo
     bindsym Mod4+t exec "wordflow -t"
     bindsym Mod4+c exec "wordflow -c"
     bindsym Mod4+u exec "wordflow -u"
+
+# Note
+this is a tentative patch for windows and MacOS
+MacOS user: you might need to open the Mac's System Settings -> Privacy & Security -> Accessibility and toggle the switch on for the terminal emulator. Why? Because this allows the program to get access to highlighted text by sending it to the copy clipboard.
